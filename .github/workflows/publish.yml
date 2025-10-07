@@ -64,10 +64,16 @@ jobs:
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
       run: |
-        for file in ./artifacts/*.nupkg; do
-          echo "Publishing $file..."
-          dotnet nuget push "$file" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
-        done
+        shopt -s nullglob
+        files=(./artifacts/*.nupkg)
+        if [ ${#files[@]} -eq 0 ]; then
+          echo "No .nupkg files found in ./artifacts. Skipping publish."
+        else
+          for file in "${files[@]}"; do
+            echo "Publishing $file..."
+            dotnet nuget push "$file" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
+        fi
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
