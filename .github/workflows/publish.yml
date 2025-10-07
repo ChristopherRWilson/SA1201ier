@@ -61,7 +61,6 @@ jobs:
       if: steps.gitversion.outcome == 'failure'
       run: |
         echo "semVer=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
-        echo "nuGetVersionV2=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
         echo "assemblySemVer=0.1.0.0" >> $GITHUB_OUTPUT
         echo "assemblySemFileVer=0.1.0.0" >> $GITHUB_OUTPUT
         echo "informationalVersion=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
@@ -73,14 +72,12 @@ jobs:
       run: |
         if [ "${{ steps.gitversion.outcome }}" == "success" ]; then
           echo "semVer=${{ steps.gitversion.outputs.semVer }}" >> $GITHUB_OUTPUT
-          echo "nuGetVersionV2=${{ steps.gitversion.outputs.nuGetVersionV2 }}" >> $GITHUB_OUTPUT
           echo "assemblySemVer=${{ steps.gitversion.outputs.assemblySemVer }}" >> $GITHUB_OUTPUT
           echo "assemblySemFileVer=${{ steps.gitversion.outputs.assemblySemFileVer }}" >> $GITHUB_OUTPUT
           echo "informationalVersion=${{ steps.gitversion.outputs.informationalVersion }}" >> $GITHUB_OUTPUT
           echo "fullSemVer=${{ steps.gitversion.outputs.fullSemVer }}" >> $GITHUB_OUTPUT
         else
           echo "semVer=${{ steps.fallback_version.outputs.semVer }}" >> $GITHUB_OUTPUT
-          echo "nuGetVersionV2=${{ steps.fallback_version.outputs.nuGetVersionV2 }}" >> $GITHUB_OUTPUT
           echo "assemblySemVer=${{ steps.fallback_version.outputs.assemblySemVer }}" >> $GITHUB_OUTPUT
           echo "assemblySemFileVer=${{ steps.fallback_version.outputs.assemblySemFileVer }}" >> $GITHUB_OUTPUT
           echo "informationalVersion=${{ steps.fallback_version.outputs.informationalVersion }}" >> $GITHUB_OUTPUT
@@ -90,7 +87,6 @@ jobs:
     - name: Display GitVersion outputs
       run: |
         echo "SemVer: ${{ steps.version.outputs.semVer }}"
-        echo "NuGetVersionV2: ${{ steps.version.outputs.nuGetVersionV2 }}"
         echo "FullSemVer: ${{ steps.version.outputs.fullSemVer }}"
 
     - name: Restore dependencies
@@ -103,7 +99,7 @@ jobs:
       run: dotnet test SA1201ier.slnx --no-build --configuration Release --verbosity normal
 
     - name: Pack NuGet packages
-      run: dotnet pack SA1201ier.slnx --no-build --configuration Release --output ./artifacts /p:PackageVersion=${{ steps.version.outputs.nuGetVersionV2 }} /p:Version=${{ steps.version.outputs.semVer }}
+      run: dotnet pack SA1201ier.slnx --no-build --configuration Release --output ./artifacts /p:PackageVersion=${{ steps.version.outputs.semVer }} /p:Version=${{ steps.version.outputs.semVer }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
