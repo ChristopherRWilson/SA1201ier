@@ -25,13 +25,13 @@ jobs:
         dotnet-version: '9.0.x'
 
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v1.1.1
+      uses: gittools/actions/gitversion/setup@v3.0.0
       with:
         versionSpec: '6.x'
 
     - name: Determine Version
       id: gitversion
-      uses: gittools/actions/gitversion/execute@v1.1.1
+      uses: gittools/actions/gitversion/execute@v3.0.0
       with:
         useConfigFile: true
         configFilePath: GitVersion.yml
@@ -82,15 +82,15 @@ jobs:
         name: Release v${{ steps.gitversion.outputs.semVer }}
         body: |
           ## SA1201ier v${{ steps.gitversion.outputs.semVer }}
-          
+
           Automatic release created from main branch.
-          
+
           ### Installation
-          
+
           ```bash
           dotnet tool install --global SA1201ier --version ${{ steps.gitversion.outputs.semVer }}
           ```
-          
+
           ### Packages
           - SA1201ier (CLI Tool): [![NuGet](https://img.shields.io/nuget/v/SA1201ier.svg)](https://www.nuget.org/packages/SA1201ier/)
           - SA1201ier.Core: [![NuGet](https://img.shields.io/nuget/v/SA1201ier.Core.svg)](https://www.nuget.org/packages/SA1201ier.Core/)
