@@ -55,7 +55,7 @@ jobs:
         dotnet-version: '9.0.x'
 
     - name: Build CLI
-      run: dotnet build SA1201ier.Cli/SA1201ier.Cli.csproj --configuration Release
+      run: dotnet build SA1201ier.Cli/SA1201ier.csproj --configuration Release
 
     - name: Create test file
       run: |
@@ -68,10 +68,10 @@ jobs:
         EOF
 
     - name: Run CLI check
-      run: dotnet run --project SA1201ier.Cli/SA1201ier.Cli.csproj --no-build --configuration Release -- TestFile.cs --check || true
+      run: dotnet run --project SA1201ier.Cli/SA1201ier.csproj --no-build --configuration Release -- TestFile.cs --check || true
 
     - name: Run CLI format
-      run: dotnet run --project SA1201ier.Cli/SA1201ier.Cli.csproj --no-build --configuration Release -- TestFile.cs
+      run: dotnet run --project SA1201ier.Cli/SA1201ier.csproj --no-build --configuration Release -- TestFile.cs
 
     - name: Verify formatting
       run: |
