@@ -37,7 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\" />
-    <None Include="$(OutputPath)\SA1201ier.MSBuild.dll" Pack="true" PackagePath="lib\net9.0\" />
-    <None Include="$(OutputPath)\SA1201ier.Core.dll" Pack="true" PackagePath="lib\net9.0\" />
+    <None Include="$(OutputPath)\SA1201ier.MSBuild.dll" Pack="true" PackagePath="build\net9.0\" />
+    <None Include="$(OutputPath)\SA1201ier.Core.dll" Pack="true" PackagePath="build\net9.0\" />
   </ItemGroup>
 </Project>

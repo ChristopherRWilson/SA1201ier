@@ -1,7 +1,7 @@
 <Project>
   <UsingTask
     TaskName="SA1201ier.MSBuild.FormatSA1201Task"
-    AssemblyFile="$(MSBuildThisFileDirectory)\..\lib\net9.0\SA1201ier.MSBuild.dll"
+    AssemblyFile="$(MSBuildThisFileDirectory)\net9.0\SA1201ier.MSBuild.dll"
   />
   <Target
     Name="FormatSA1201"
