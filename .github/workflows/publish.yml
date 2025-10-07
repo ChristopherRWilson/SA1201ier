@@ -60,10 +60,12 @@ jobs:
         path: ./artifacts/*.nupkg
 
     - name: Publish to NuGet.org
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
       run: |
         for file in ./artifacts/*.nupkg; do
           echo "Publishing $file..."
-          dotnet nuget push "$file" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push "$file" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
         done
 
     - name: Create GitHub Release
