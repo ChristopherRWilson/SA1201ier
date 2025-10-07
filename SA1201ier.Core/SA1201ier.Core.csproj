@@ -9,11 +9,10 @@
     <Authors>Chris Wilson</Authors>
     <Description>Core library for SA1201ier - automatically format C# files according to StyleCop rule SA1201 (elements should be ordered by access level).</Description>
     <PackageTags>stylecop;sa1201;formatter;roslyn;csharp;code-formatter</PackageTags>
-    <PackageProjectUrl>https://github.com/ChristopherRWilson/SA1201</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/ChristopherRWilson/SA1201</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/ChristopherRWilson/SA1201ier</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ChristopherRWilson/SA1201ier</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>0.1.0</Version>
     <PackageReadmeFile>README-NEW.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>

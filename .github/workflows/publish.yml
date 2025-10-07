@@ -1,0 +1,94 @@
+name: Publish to NuGet
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Required for GitVersion
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v1.1.1
+      with:
+        versionSpec: '6.x'
+
+    - name: Determine Version
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v1.1.1
+      with:
+        useConfigFile: true
+        configFilePath: GitVersion.yml
+
+    - name: Display GitVersion outputs
+      run: |
+        echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
+        echo "NuGetVersionV2: ${{ steps.gitversion.outputs.nuGetVersionV2 }}"
+        echo "FullSemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
+
+    - name: Restore dependencies
+      run: dotnet restore SA1201ier.slnx
+
+    - name: Build
+      run: dotnet build SA1201ier.slnx --no-restore --configuration Release /p:Version=${{ steps.gitversion.outputs.semVer }} /p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemVer }} /p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.informationalVersion }}
+
+    - name: Test
+      run: dotnet test SA1201ier.slnx --no-build --configuration Release --verbosity normal
+
+    - name: Pack NuGet packages
+      run: dotnet pack SA1201ier.slnx --no-build --configuration Release --output ./artifacts /p:PackageVersion=${{ steps.gitversion.outputs.nuGetVersionV2 }} /p:Version=${{ steps.gitversion.outputs.semVer }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages-${{ steps.gitversion.outputs.semVer }}
+        path: ./artifacts/*.nupkg
+
+    - name: Publish to NuGet.org
+      run: |
+        for file in ./artifacts/*.nupkg; do
+          echo "Publishing $file..."
+          dotnet nuget push "$file" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        done
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.gitversion.outputs.semVer }}
+        name: Release v${{ steps.gitversion.outputs.semVer }}
+        body: |
+          ## SA1201ier v${{ steps.gitversion.outputs.semVer }}
+          
+          Automatic release created from main branch.
+          
+          ### Installation
+          
+          ```bash
+          dotnet tool install --global SA1201ier --version ${{ steps.gitversion.outputs.semVer }}
+          ```
+          
+          ### Packages
+          - SA1201ier (CLI Tool): [![NuGet](https://img.shields.io/nuget/v/SA1201ier.svg)](https://www.nuget.org/packages/SA1201ier/)
+          - SA1201ier.Core: [![NuGet](https://img.shields.io/nuget/v/SA1201ier.Core.svg)](https://www.nuget.org/packages/SA1201ier.Core/)
+          - SA1201ier.MSBuild: [![NuGet](https://img.shields.io/nuget/v/SA1201ier.MSBuild.svg)](https://www.nuget.org/packages/SA1201ier.MSBuild/)
+        files: |
+          ./artifacts/*.nupkg
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
