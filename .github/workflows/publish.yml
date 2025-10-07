@@ -92,18 +92,18 @@ jobs:
       run: dotnet restore SA1201ier.slnx
 
     - name: Build
-      run: dotnet build SA1201ier.slnx --no-restore --configuration Release /p:Version=${{ steps.gitversion.outputs.semVer }} /p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemVer }} /p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.informationalVersion }}
+      run: dotnet build SA1201ier.slnx --no-restore --configuration Release /p:Version=${{ steps.version.outputs.semVer }} /p:AssemblyVersion=${{ steps.version.outputs.assemblySemVer }} /p:FileVersion=${{ steps.version.outputs.assemblySemFileVer }} /p:InformationalVersion=${{ steps.version.outputs.informationalVersion }}
 
     - name: Test
       run: dotnet test SA1201ier.slnx --no-build --configuration Release --verbosity normal
 
     - name: Pack NuGet packages
-      run: dotnet pack SA1201ier.slnx --no-build --configuration Release --output ./artifacts /p:PackageVersion=${{ steps.gitversion.outputs.nuGetVersionV2 }} /p:Version=${{ steps.gitversion.outputs.semVer }}
+      run: dotnet pack SA1201ier.slnx --no-build --configuration Release --output ./artifacts /p:PackageVersion=${{ steps.version.outputs.nuGetVersionV2 }} /p:Version=${{ steps.version.outputs.semVer }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: nuget-packages-${{ steps.gitversion.outputs.semVer }}
+        name: nuget-packages-${{ steps.version.outputs.semVer }}
         path: ./artifacts/*.nupkg
 
     - name: Publish to NuGet.org
@@ -124,17 +124,17 @@ jobs:
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v${{ steps.gitversion.outputs.semVer }}
-        name: Release v${{ steps.gitversion.outputs.semVer }}
+        tag_name: v${{ steps.version.outputs.semVer }}
+        name: Release v${{ steps.version.outputs.semVer }}
         body: |
-          ## SA1201ier v${{ steps.gitversion.outputs.semVer }}
+          ## SA1201ier v${{ steps.version.outputs.semVer }}
 
           Automatic release created from main branch.
 
           ### Installation
 
           ```bash
-          dotnet tool install --global SA1201ier --version ${{ steps.gitversion.outputs.semVer }}
+          dotnet tool install --global SA1201ier --version ${{ steps.version.outputs.semVer }}
           ```
 
           ### Packages
