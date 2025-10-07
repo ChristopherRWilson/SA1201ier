@@ -4,6 +4,10 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path=".github/workflows/publish.yml" />
+    <File Path="GitVersion.yml" />
+  </Folder>
   <Project Path="SA1201ier.Cli/SA1201ier.csproj" />
   <Project Path="SA1201ier.Core/SA1201ier.Core.csproj" />
   <Project Path="SA1201ier.MSBuild/SA1201ier.MSBuild.csproj" />
