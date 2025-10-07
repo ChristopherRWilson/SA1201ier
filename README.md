@@ -140,7 +140,7 @@ jobs:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/SA1201ier.git
+git clone https://github.com/ChristopherRWilson/SA1201ier.git
 cd SA1201ier
 
 # Build the solution
@@ -206,7 +206,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the GPL3 License - see the LICENSE file for details.
 
 ## Acknowledgments
 
