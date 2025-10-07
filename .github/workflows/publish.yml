@@ -53,7 +53,7 @@ jobs:
       continue-on-error: true
 
     - name: Fallback to manual versioning if GitVersion fails
-      if: failure()
+      if: steps.gitversion.outcome == 'failure'
       run: |
         echo "semVer=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
         echo "nuGetVersionV2=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
@@ -63,22 +63,30 @@ jobs:
         echo "fullSemVer=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
       id: fallback_version
 
-    # Forward fallback_version outputs to gitversion outputs if GitVersion failed
-    - name: Forward fallback outputs to gitversion
-      if: steps.gitversion.outcome == 'failure'
+    - name: Set version outputs
+      id: version
       run: |
-        echo "semVer=${{ steps.fallback_version.outputs.semVer }}" >> $GITHUB_OUTPUT
-        echo "nuGetVersionV2=${{ steps.fallback_version.outputs.nuGetVersionV2 }}" >> $GITHUB_OUTPUT
-        echo "assemblySemVer=${{ steps.fallback_version.outputs.assemblySemVer }}" >> $GITHUB_OUTPUT
-        echo "assemblySemFileVer=${{ steps.fallback_version.outputs.assemblySemFileVer }}" >> $GITHUB_OUTPUT
-        echo "informationalVersion=${{ steps.fallback_version.outputs.informationalVersion }}" >> $GITHUB_OUTPUT
-        echo "fullSemVer=${{ steps.fallback_version.outputs.fullSemVer }}" >> $GITHUB_OUTPUT
-      id: gitversion
+        if [ "${{ steps.gitversion.outcome }}" == "success" ]; then
+          echo "semVer=${{ steps.gitversion.outputs.semVer }}" >> $GITHUB_OUTPUT
+          echo "nuGetVersionV2=${{ steps.gitversion.outputs.nuGetVersionV2 }}" >> $GITHUB_OUTPUT
+          echo "assemblySemVer=${{ steps.gitversion.outputs.assemblySemVer }}" >> $GITHUB_OUTPUT
+          echo "assemblySemFileVer=${{ steps.gitversion.outputs.assemblySemFileVer }}" >> $GITHUB_OUTPUT
+          echo "informationalVersion=${{ steps.gitversion.outputs.informationalVersion }}" >> $GITHUB_OUTPUT
+          echo "fullSemVer=${{ steps.gitversion.outputs.fullSemVer }}" >> $GITHUB_OUTPUT
+        else
+          echo "semVer=${{ steps.fallback_version.outputs.semVer }}" >> $GITHUB_OUTPUT
+          echo "nuGetVersionV2=${{ steps.fallback_version.outputs.nuGetVersionV2 }}" >> $GITHUB_OUTPUT
+          echo "assemblySemVer=${{ steps.fallback_version.outputs.assemblySemVer }}" >> $GITHUB_OUTPUT
+          echo "assemblySemFileVer=${{ steps.fallback_version.outputs.assemblySemFileVer }}" >> $GITHUB_OUTPUT
+          echo "informationalVersion=${{ steps.fallback_version.outputs.informationalVersion }}" >> $GITHUB_OUTPUT
+          echo "fullSemVer=${{ steps.fallback_version.outputs.fullSemVer }}" >> $GITHUB_OUTPUT
+        fi
+
     - name: Display GitVersion outputs
       run: |
-        echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
-        echo "NuGetVersionV2: ${{ steps.gitversion.outputs.nuGetVersionV2 }}"
-        echo "FullSemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
+        echo "SemVer: ${{ steps.version.outputs.semVer }}"
+        echo "NuGetVersionV2: ${{ steps.version.outputs.nuGetVersionV2 }}"
+        echo "FullSemVer: ${{ steps.version.outputs.fullSemVer }}"
 
     - name: Restore dependencies
       run: dotnet restore SA1201ier.slnx
