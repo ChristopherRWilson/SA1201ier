@@ -63,6 +63,17 @@ jobs:
         echo "fullSemVer=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
       id: fallback_version
 
+    # Forward fallback_version outputs to gitversion outputs if GitVersion failed
+    - name: Forward fallback outputs to gitversion
+      if: steps.gitversion.outcome == 'failure'
+      run: |
+        echo "semVer=${{ steps.fallback_version.outputs.semVer }}" >> $GITHUB_OUTPUT
+        echo "nuGetVersionV2=${{ steps.fallback_version.outputs.nuGetVersionV2 }}" >> $GITHUB_OUTPUT
+        echo "assemblySemVer=${{ steps.fallback_version.outputs.assemblySemVer }}" >> $GITHUB_OUTPUT
+        echo "assemblySemFileVer=${{ steps.fallback_version.outputs.assemblySemFileVer }}" >> $GITHUB_OUTPUT
+        echo "informationalVersion=${{ steps.fallback_version.outputs.informationalVersion }}" >> $GITHUB_OUTPUT
+        echo "fullSemVer=${{ steps.fallback_version.outputs.fullSemVer }}" >> $GITHUB_OUTPUT
+      id: gitversion
     - name: Display GitVersion outputs
       run: |
         echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
