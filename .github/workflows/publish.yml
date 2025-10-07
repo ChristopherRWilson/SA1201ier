@@ -29,13 +29,51 @@ jobs:
       with:
         versionSpec: '6.x'
 
+    - name: Verify repository state
+      run: |
+        echo "Current directory:"
+        pwd
+        echo "Git status:"
+        git status
+        echo "Recent commits:"
+        git log --oneline -n 5
+        echo "GitVersion config:"
+        if [ -f GitVersion.yml ]; then
+          cat GitVersion.yml
+        else
+          echo "No GitVersion.yml found"
+        fi
+
     - name: Determine Version
       id: gitversion
       uses: gittools/actions/gitversion/execute@v3
       with:
         useConfigFile: true
         configFilePath: GitVersion.yml
+      continue-on-error: true
 
+    - name: Fallback to manual versioning if GitVersion fails
+      if: failure()
+      run: |
+        echo "semVer=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
+        echo "nuGetVersionV2=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
+        echo "assemblySemVer=0.1.0.0" >> $GITHUB_OUTPUT
+        echo "assemblySemFileVer=0.1.0.0" >> $GITHUB_OUTPUT
+        echo "informationalVersion=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
+        echo "fullSemVer=0.1.0-alpha.${{ github.run_number }}" >> $GITHUB_OUTPUT
+      id: fallback_version
+
+    # Forward fallback_version outputs to gitversion outputs if GitVersion failed
+    - name: Forward fallback outputs to gitversion
+      if: steps.gitversion.outcome == 'failure'
+      run: |
+        echo "semVer=${{ steps.fallback_version.outputs.semVer }}" >> $GITHUB_OUTPUT
+        echo "nuGetVersionV2=${{ steps.fallback_version.outputs.nuGetVersionV2 }}" >> $GITHUB_OUTPUT
+        echo "assemblySemVer=${{ steps.fallback_version.outputs.assemblySemVer }}" >> $GITHUB_OUTPUT
+        echo "assemblySemFileVer=${{ steps.fallback_version.outputs.assemblySemFileVer }}" >> $GITHUB_OUTPUT
+        echo "informationalVersion=${{ steps.fallback_version.outputs.informationalVersion }}" >> $GITHUB_OUTPUT
+        echo "fullSemVer=${{ steps.fallback_version.outputs.fullSemVer }}" >> $GITHUB_OUTPUT
+      id: gitversion
     - name: Display GitVersion outputs
       run: |
         echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
