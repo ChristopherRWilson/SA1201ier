@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <SA1201FormatOnBuild Condition="'$(SA1201FormatOnBuild)' == ''">false</SA1201FormatOnBuild>
+    <SA1201CheckOnBuild Condition="'$(SA1201CheckOnBuild)' == ''">false</SA1201CheckOnBuild>
+    <SA1201FailOnViolations Condition="'$(SA1201FailOnViolations)' == ''"
+      >false</SA1201FailOnViolations
+    >
+  </PropertyGroup>
+</Project>

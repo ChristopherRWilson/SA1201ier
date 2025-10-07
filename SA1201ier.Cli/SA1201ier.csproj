@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\SA1201ier.Core\SA1201ier.Core.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>sa1201ier</ToolCommandName>
+    <PackageId>SA1201ier</PackageId>
+    <Title>SA1201ier Formatter CLI Tool</Title>
+    <Authors>Chris Wilson</Authors>
+    <Description>Command-line tool for SA1201 Formatter - automatically format C# files according to StyleCop rule SA1201 (elements should be ordered by access level).</Description>
+    <PackageTags>stylecop;sa1201;formatter;cli;tool;csharp;code-formatter;dotnet-tool</PackageTags>
+    <PackageProjectUrl>https://github.com/ChristopherRWilson/SA1201</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ChristopherRWilson/SA1201</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Version>0.1.0</Version>
+    <PackageReadmeFile>README-NEW.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\README-NEW.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CSharpier.MsBuild" Version="1.1.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

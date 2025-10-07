@@ -1,0 +1,46 @@
+using System;
+
+namespace SA1201.Examples;
+
+/// <summary>
+/// Example of a class AFTER SA1201 formatting.
+/// Members are in correct order according to StyleCop rule SA1201.
+/// Order: const fields -> static fields -> instance fields -> constructors -> events -> properties -> methods
+/// Within each category: public -> internal -> protected internal -> protected -> private protected -> private
+/// </summary>
+public class WellOrderedClass
+{
+    // 1. Const fields first, ordered by access level
+    private const int PrivateConst = 100;
+
+    // 2. Static fields, ordered by access level
+    public static int PublicStaticField = 42;
+    private static string PrivateStaticField = "test";
+
+    // 3. Instance fields, ordered by access level
+    public string PublicField;
+
+    // 4. Constructors
+    public WellOrderedClass()
+    {
+        PublicField = "initialized";
+    }
+
+    // 5. Events, ordered by access level
+    public event EventHandler MyEvent;
+
+    // 6. Properties, ordered by access level
+    public int PublicProperty { get; set; }
+    private int PrivateProperty { get; set; }
+
+    // 7. Methods, ordered by access level
+    public void PublicMethod()
+    {
+        Console.WriteLine("Public method");
+    }
+
+    private void PrivateMethod()
+    {
+        Console.WriteLine("Private method");
+    }
+}

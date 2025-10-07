@@ -1,0 +1,49 @@
+using System;
+
+namespace SA1201.Examples;
+
+/// <summary>
+/// Example of a class BEFORE SA1201 formatting.
+/// Members are in incorrect order according to StyleCop rule SA1201.
+/// </summary>
+public class BadlyOrderedClass
+{
+    // Methods before fields - WRONG!
+    private void PrivateMethod()
+    {
+        Console.WriteLine("Private method");
+    }
+
+    // Public field after private method - WRONG!
+    public string PublicField;
+
+    // Properties in mixed order - WRONG!
+    private int PrivateProperty { get; set; }
+
+    // Constructor after properties - might be WRONG depending on order!
+    public BadlyOrderedClass()
+    {
+        PublicField = "initialized";
+    }
+
+    // Static field after constructor - WRONG!
+    public static int PublicStaticField = 42;
+
+    // Public method before private method - mixed order - WRONG!
+    public void PublicMethod()
+    {
+        Console.WriteLine("Public method");
+    }
+
+    // Const field at the end - WRONG! Should be first!
+    private const int PrivateConst = 100;
+
+    // Another property
+    public int PublicProperty { get; set; }
+
+    // Event in wrong position
+    public event EventHandler MyEvent;
+
+    // Private static field
+    private static string PrivateStaticField = "test";
+}

@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="SA1201ier.Cli/SA1201ier.csproj" />
+  <Project Path="SA1201ier.Core/SA1201ier.Core.csproj" />
+  <Project Path="SA1201ier.MSBuild/SA1201ier.MSBuild.csproj" />
+  <Project Path="SA1201ier.Tests/SA1201ier.Tests.csproj" />
+</Solution>

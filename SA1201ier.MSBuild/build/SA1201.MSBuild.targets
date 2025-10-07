@@ -1,0 +1,17 @@
+<Project>
+  <UsingTask
+    TaskName="SA1201ier.MSBuild.FormatSA1201Task"
+    AssemblyFile="$(MSBuildThisFileDirectory)\..\lib\net9.0\SA1201ier.MSBuild.dll"
+  />
+  <Target
+    Name="FormatSA1201"
+    BeforeTargets="CoreCompile"
+    Condition="'$(SA1201FormatOnBuild)' == 'true' OR '$(SA1201CheckOnBuild)' == 'true'"
+  >
+    <FormatSA1201Task
+      ProjectDirectory="$(MSBuildProjectDirectory)"
+      CheckOnly="$(SA1201CheckOnBuild)"
+      FailOnViolations="$(SA1201FailOnViolations)"
+    />
+  </Target>
+</Project>

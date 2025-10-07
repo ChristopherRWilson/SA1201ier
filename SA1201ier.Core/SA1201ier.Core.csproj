@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageId>SA1201ier.Core</PackageId>
+    <Title>SA1201ier Core Library</Title>
+    <Authors>Chris Wilson</Authors>
+    <Description>Core library for SA1201ier - automatically format C# files according to StyleCop rule SA1201 (elements should be ordered by access level).</Description>
+    <PackageTags>stylecop;sa1201;formatter;roslyn;csharp;code-formatter</PackageTags>
+    <PackageProjectUrl>https://github.com/ChristopherRWilson/SA1201</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ChristopherRWilson/SA1201</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Version>0.1.0</Version>
+    <PackageReadmeFile>README-NEW.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\README-NEW.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CSharpier.MsBuild" Version="1.1.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+  </ItemGroup>
+</Project>

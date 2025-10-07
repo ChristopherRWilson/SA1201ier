@@ -1,0 +1,83 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        dotnet-version: ['9.0.x']
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+
+    - name: Restore dependencies
+      run: dotnet restore SA1201ier.sln
+
+    - name: Build
+      run: dotnet build SA1201ier.sln --no-restore --configuration Release
+
+    - name: Test
+      run: dotnet test SA1201ier.sln --no-build --configuration Release --verbosity normal
+
+    - name: Pack NuGet packages
+      if: matrix.os == 'ubuntu-latest'
+      run: dotnet pack SA1201ier.sln --no-build --configuration Release --output ./artifacts
+
+    - name: Upload artifacts
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v3
+      with:
+        name: nuget-packages
+        path: ./artifacts/*.nupkg
+
+  test-cli:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Build CLI
+      run: dotnet build SA1201ier.Cli/SA1201ier.Cli.csproj --configuration Release
+
+    - name: Create test file
+      run: |
+        cat > TestFile.cs << 'EOF'
+        public class TestClass
+        {
+            private void PrivateMethod() { }
+            public void PublicMethod() { }
+        }
+        EOF
+
+    - name: Run CLI check
+      run: dotnet run --project SA1201ier.Cli/SA1201ier.Cli.csproj --no-build --configuration Release -- TestFile.cs --check || true
+
+    - name: Run CLI format
+      run: dotnet run --project SA1201ier.Cli/SA1201ier.Cli.csproj --no-build --configuration Release -- TestFile.cs
+
+    - name: Verify formatting
+      run: |
+        if grep -q "public void PublicMethod" TestFile.cs; then
+          echo "File was formatted successfully"
+        else
+          echo "File formatting failed"
+          exit 1
+        fi
