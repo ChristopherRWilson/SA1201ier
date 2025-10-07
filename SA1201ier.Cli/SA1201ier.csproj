@@ -18,7 +18,7 @@
     <RepositoryUrl>https://github.com/ChristopherRWilson/SA1201ier</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReadmeFile>README-NEW.md</PackageReadmeFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CSharpier.MsBuild" Version="1.1.2">
