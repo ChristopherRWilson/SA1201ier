@@ -1,6 +1,6 @@
 ﻿# SA1201ier
 
-A command-line tool and MSBuild integration for automatically formatting C# files (including Razor files) according to StyleCop rule SA1201, which requires elements to be ordered by access level.
+A command-line tool and MSBuild integration for automatically formatting C# files and now Razor files, with new support for formatting C# code within Razor files, according to StyleCop rule SA1201, which requires elements to be ordered by access level.
 
 ## Features
 
