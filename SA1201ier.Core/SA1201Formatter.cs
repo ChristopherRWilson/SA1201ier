@@ -569,7 +569,8 @@ public class Sa1201IerFormatter
             }
         }
 
-        if (!needsReordering && !_options.InsertBlankLineBetweenMembers)
+        var shouldSkipProcessing = !needsReordering && !_options.InsertBlankLineBetweenMembers;
+        if (shouldSkipProcessing)
         {
             return typeDeclaration;
         }
