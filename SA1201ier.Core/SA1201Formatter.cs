@@ -61,7 +61,7 @@ public class Sa1201IerFormatter
     )
     {
         var allMembers = typeDeclaration.Members.ToList();
-        
+
         if (allMembers.Count == 0)
         {
             return;
@@ -78,8 +78,8 @@ public class Sa1201IerFormatter
             }
 
             // Get member order info for this group
-            var memberInfos = group.Members
-                .Select(GetMemberOrderInfo)
+            var memberInfos = group
+                .Members.Select(GetMemberOrderInfo)
                 .Where(m => m != null)
                 .Cast<MemberOrderInfo>()
                 .ToList();
@@ -324,7 +324,7 @@ public class Sa1201IerFormatter
     )
     {
         var allMembers = typeDeclaration.Members.ToList();
-        
+
         if (allMembers.Count == 0)
         {
             return typeDeclaration;
@@ -344,8 +344,8 @@ public class Sa1201IerFormatter
             }
 
             // Get member order info for this group
-            var memberInfos = group.Members
-                .Select(GetMemberOrderInfo)
+            var memberInfos = group
+                .Members.Select(GetMemberOrderInfo)
                 .Where(m => m != null)
                 .Cast<MemberOrderInfo>()
                 .ToList();
@@ -387,17 +387,17 @@ public class Sa1201IerFormatter
                 // Preserve the leading trivia of the first member in the group
                 var firstOriginalMember = group.Members[0];
                 var leadingTrivia = firstOriginalMember.GetLeadingTrivia();
-                
+
                 for (var i = 0; i < sortedMembers.Count; i++)
                 {
                     var member = (MemberDeclarationSyntax)sortedMembers[i].Node;
-                    
+
                     // Apply the preserved leading trivia to the first reordered member
                     if (i == 0)
                     {
                         member = member.WithLeadingTrivia(leadingTrivia);
                     }
-                    
+
                     reorderedMembers.Add(member);
                 }
             }
@@ -432,7 +432,7 @@ public class Sa1201IerFormatter
     {
         var groups = new List<MemberGroup>();
         var currentGroup = new MemberGroup();
-        
+
         // Track the nesting level of preprocessor directives and regions
         var directiveDepth = 0;
         var regionDepth = 0;
@@ -440,13 +440,13 @@ public class Sa1201IerFormatter
         foreach (var member in allMembers)
         {
             var leadingTrivia = member.GetLeadingTrivia();
-            
+
             // Count opening and closing directives in leading trivia
             var ifDirectives = 0;
             var endIfDirectives = 0;
             var regionDirectives = 0;
             var endRegionDirectives = 0;
-            
+
             foreach (var trivia in leadingTrivia)
             {
                 if (trivia.IsKind(SyntaxKind.IfDirectiveTrivia))
@@ -458,7 +458,7 @@ public class Sa1201IerFormatter
                 else if (trivia.IsKind(SyntaxKind.EndRegionDirectiveTrivia))
                     endRegionDirectives++;
             }
-            
+
             // Check trailing trivia too
             var trailingTrivia = member.GetTrailingTrivia();
             foreach (var trivia in trailingTrivia)
@@ -472,38 +472,38 @@ public class Sa1201IerFormatter
                 else if (trivia.IsKind(SyntaxKind.EndRegionDirectiveTrivia))
                     endRegionDirectives++;
             }
-            
+
             // If we're closing a directive/region block and have members in current group,
             // finalize this group first
             var wasInBlock = directiveDepth > 0 || regionDepth > 0;
             directiveDepth -= endIfDirectives;
             regionDepth -= endRegionDirectives;
             var nowInBlock = directiveDepth > 0 || regionDepth > 0;
-            
+
             // If we're leaving a block, close current group
             if (wasInBlock && !nowInBlock && currentGroup.Members.Count > 0)
             {
                 currentGroup.Members.Add(member);
                 groups.Add(currentGroup);
                 currentGroup = new MemberGroup();
-                
+
                 // Update depths after processing opening directives
                 directiveDepth += ifDirectives;
                 regionDepth += regionDirectives;
                 continue;
             }
-            
+
             // Update depths for opening directives
             directiveDepth += ifDirectives;
             regionDepth += regionDirectives;
-            
+
             // If we're entering a block, close current group first
             if (!wasInBlock && nowInBlock && currentGroup.Members.Count > 0)
             {
                 groups.Add(currentGroup);
                 currentGroup = new MemberGroup();
             }
-            
+
             currentGroup.Members.Add(member);
         }
 
@@ -527,7 +527,8 @@ public class Sa1201IerFormatter
     /// </summary>
     private class MemberGroup
     {
-        public List<MemberDeclarationSyntax> Members { get; set; } = new List<MemberDeclarationSyntax>();
+        public List<MemberDeclarationSyntax> Members { get; set; } =
+            new List<MemberDeclarationSyntax>();
     }
 
     /// <summary>

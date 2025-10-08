@@ -541,16 +541,25 @@ public class TestClass
 
         // Assert
         Assert.NotNull(result.FormattedContent);
-        
+
         // Verify regions are preserved
         Assert.Contains("#region Private Fields", result.FormattedContent);
         Assert.Contains("#endregion", result.FormattedContent);
         Assert.Contains("#region Public Fields", result.FormattedContent);
-        
+
         // Verify that public method comes before private method (outside of regions)
-        var publicMethodIndex = result.FormattedContent.IndexOf("public void PublicMethod", StringComparison.Ordinal);
-        var privateMethodIndex = result.FormattedContent.IndexOf("private void PrivateMethod", StringComparison.Ordinal);
-        Assert.True(publicMethodIndex < privateMethodIndex, "Public method should come before private method");
+        var publicMethodIndex = result.FormattedContent.IndexOf(
+            "public void PublicMethod",
+            StringComparison.Ordinal
+        );
+        var privateMethodIndex = result.FormattedContent.IndexOf(
+            "private void PrivateMethod",
+            StringComparison.Ordinal
+        );
+        Assert.True(
+            publicMethodIndex < privateMethodIndex,
+            "Public method should come before private method"
+        );
     }
 
     /// <summary>
@@ -577,22 +586,34 @@ public class TestClass
 
         // Assert
         Assert.NotNull(result.FormattedContent);
-        
+
         // Verify preprocessor directives are preserved
         Assert.Contains("#if DEBUG", result.FormattedContent);
         Assert.Contains("#endif", result.FormattedContent);
-        
+
         // Verify DebugMethod is still within the #if block
         var ifIndex = result.FormattedContent.IndexOf("#if DEBUG", StringComparison.Ordinal);
-        var debugMethodIndex = result.FormattedContent.IndexOf("private void DebugMethod", StringComparison.Ordinal);
+        var debugMethodIndex = result.FormattedContent.IndexOf(
+            "private void DebugMethod",
+            StringComparison.Ordinal
+        );
         var endifIndex = result.FormattedContent.IndexOf("#endif", StringComparison.Ordinal);
         Assert.True(ifIndex < debugMethodIndex, "#if should come before DebugMethod");
         Assert.True(debugMethodIndex < endifIndex, "DebugMethod should come before #endif");
-        
+
         // Verify that public method comes before private method (outside of #if block)
-        var publicMethodIndex = result.FormattedContent.IndexOf("public void PublicMethod", StringComparison.Ordinal);
-        var privateMethodIndex = result.FormattedContent.IndexOf("private void PrivateMethod", StringComparison.Ordinal);
-        Assert.True(publicMethodIndex < privateMethodIndex, "Public method should come before private method");
+        var publicMethodIndex = result.FormattedContent.IndexOf(
+            "public void PublicMethod",
+            StringComparison.Ordinal
+        );
+        var privateMethodIndex = result.FormattedContent.IndexOf(
+            "private void PrivateMethod",
+            StringComparison.Ordinal
+        );
+        Assert.True(
+            publicMethodIndex < privateMethodIndex,
+            "Public method should come before private method"
+        );
     }
 
     /// <summary>
@@ -622,7 +643,7 @@ public class TestClass
 
         // Assert
         Assert.NotNull(result.FormattedContent);
-        
+
         // Verify regions are preserved in original order since region blocks are kept as-is
         Assert.Contains("#region Public Fields", result.FormattedContent);
         Assert.Contains("#region Private Fields", result.FormattedContent);
@@ -654,19 +675,22 @@ public class TestClass
 
         // Assert
         Assert.NotNull(result.FormattedContent);
-        
+
         // Verify all preprocessor directives are preserved
         Assert.Contains("#if DEBUG", result.FormattedContent);
         Assert.Contains("#if TRACE", result.FormattedContent);
         Assert.Contains("#endif", result.FormattedContent);
-        
+
         // Verify the structure is maintained
         var lines = result.FormattedContent.Split('\n');
         var debugIfLine = Array.FindIndex(lines, l => l.Contains("#if DEBUG"));
         var traceIfLine = Array.FindIndex(lines, l => l.Contains("#if TRACE"));
         var debugTraceMethodLine = Array.FindIndex(lines, l => l.Contains("DebugTraceMethod"));
-        
+
         Assert.True(debugIfLine < traceIfLine, "#if DEBUG should come before #if TRACE");
-        Assert.True(traceIfLine < debugTraceMethodLine, "#if TRACE should come before DebugTraceMethod");
+        Assert.True(
+            traceIfLine < debugTraceMethodLine,
+            "#if TRACE should come before DebugTraceMethod"
+        );
     }
 }
