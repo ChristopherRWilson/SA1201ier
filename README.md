@@ -10,13 +10,20 @@ A command-line tool and MSBuild integration for automatically formatting C# file
 - **Comprehensive test suite** with extensive edge case coverage
 - **Preserves comments, attributes, and formatting** while reordering members
 - **Respects preprocessor directives and regions** - members within `#if`/`#endif` or `#region`/`#endregion` blocks are kept together and reordered independently
-- **Hierarchical configuration** - use `.sa1201ierrc` files to configure options per directory
-- **Alphabetical sorting** - optionally sort members alphabetically within same access level
+- **Flexible hierarchical configuration** - use `.sa1201ierrc` files to configure options per directory
+- **Fully customizable sorting** - configure access level order, member type order, and more
+- **Alphabetical sorting** - optionally sort members alphabetically within same group
 - **Top-level type sorting** - optionally sort classes, records, interfaces by access level
+- **Static/instance control** - choose whether static or instance members come first
+- **Const/non-const control** - choose whether const or non-const members come first
 
 ## What is SA1201?
 
-StyleCop rule SA1201 requires that elements in a C# type be ordered according to their access level and member type. The correct order is:
+StyleCop rule SA1201 requires that elements in a C# type be ordered according to their access level and member type. SA1201ier implements this rule with full customization support.
+
+### Default Ordering
+
+The default order follows the SA1201 standard:
 
 1. **Const fields** (public → internal → protected internal → protected → private protected → private)
 2. **Static fields** (public → internal → protected internal → protected → private protected → private)
@@ -32,6 +39,18 @@ StyleCop rule SA1201 requires that elements in a C# type be ordered according to
 12. **Methods** (public → internal → protected internal → protected → private protected → private)
 13. **Structs** (public → internal → protected internal → protected → private protected → private)
 14. **Classes** (public → internal → protected internal → protected → private protected → private)
+
+### Customization
+
+**All of this is customizable!** You can:
+- Reverse the access level order (private → public)
+- Reorder member types (properties before fields, methods before constructors, etc.)
+- Choose whether static or instance members come first
+- Choose whether const or non-const members come first
+- Sort members alphabetically
+- And much more...
+
+See the [Configuration](#configuration) section below for details.
 
 ## Installation
 
@@ -85,23 +104,52 @@ SA1201ier --init-config
 - `<path>` - Required. The file or directory path to format or check
 - `-c, --check` - Check for formatting violations without making changes
 - `-v, --verbose` - Show detailed output
-- `--alphabetical-sort` - Sort members alphabetically within same access level
+- `--alphabetical-sort` - Sort members alphabetically within same group
 - `--sort-top-level-types` - Sort top-level types (classes, records, etc.) by access level
-- `--init-config` - Create a sample .sa1201ierrc configuration file
+- `--init-config` - Create a sample .sa1201ierrc configuration file with all available options
 - `-h, --help` - Show help message
 
-### Configuration Files
+**Note:** For advanced customization like custom access level order, custom member type order, and static/const preferences, use a `.sa1201ierrc` configuration file rather than CLI options.
 
-SA1201ier supports hierarchical configuration via `.sa1201ierrc` JSON files. Place a `.sa1201ierrc` file in any directory to configure formatting options for that directory and its subdirectories.
+## Configuration
 
-#### Creating a Config File
+SA1201ier supports powerful, flexible configuration through `.sa1201ierrc` JSON files. You can customize sorting behavior for different parts of your codebase with hierarchical configuration that merges from parent to child directories.
+
+### Quick Start
+
+Create a configuration file in your project root:
 
 ```bash
-# Create a sample .sa1201ierrc in the current directory
+# Create a sample .sa1201ierrc with all available options
 SA1201ier --init-config
 ```
 
-#### Config File Format
+This creates a `.sa1201ierrc` file with comprehensive examples and documentation.
+
+### Available Configuration Options
+
+All options are optional and have sensible defaults. You can configure:
+
+#### Boolean Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `alphabeticalSort` | `false` | Sort members alphabetically within same group |
+| `sortTopLevelTypes` | `false` | Sort classes, interfaces, etc. by access level |
+| `staticMembersFirst` | `true` | Put static members before instance members |
+| `constMembersFirst` | `true` | Put const members before non-const members |
+
+#### Custom Ordering Arrays
+
+| Option | Description | Valid Values |
+|--------|-------------|--------------|
+| `accessLevelOrder` | Custom order for access modifiers | `"Public"`, `"Internal"`, `"ProtectedInternal"`, `"Protected"`, `"PrivateProtected"`, `"Private"` |
+| `memberTypeOrder` | Custom order for member types | `"Field"`, `"Constructor"`, `"Destructor"`, `"Delegate"`, `"Event"`, `"Enum"`, `"Interface"`, `"Property"`, `"Indexer"`, `"Method"`, `"Struct"`, `"Class"` |
+| `topLevelTypeOrder` | Custom order for top-level types | `"Enum"`, `"Interface"`, `"Struct"`, `"Class"` |
+
+### Configuration Examples
+
+#### Basic Configuration
 
 ```json
 {
@@ -110,29 +158,94 @@ SA1201ier --init-config
 }
 ```
 
-#### Configuration Hierarchy
+#### Custom Access Level Order (Private-First Style)
 
-- SA1201ier searches for `.sa1201ierrc` files starting from the file being formatted up to the root directory
-- Settings are merged hierarchically: child directory settings override parent directory settings
-- CLI options override all config file settings
-- This allows you to have different formatting rules for different parts of your codebase
+Some teams prefer private implementation details at the top:
 
-#### Example Directory Structure
+```json
+{
+  "accessLevelOrder": ["Private", "Protected", "Internal", "Public"],
+  "staticMembersFirst": false,
+  "constMembersFirst": false
+}
+```
+
+#### Custom Member Type Order (Properties-First Style)
+
+Useful for DTOs and POCOs:
+
+```json
+{
+  "alphabeticalSort": true,
+  "memberTypeOrder": ["Property", "Constructor", "Method", "Field"]
+}
+```
+
+#### Complete Custom Configuration
+
+```json
+{
+  "alphabeticalSort": true,
+  "sortTopLevelTypes": true,
+  "staticMembersFirst": false,
+  "constMembersFirst": true,
+  "accessLevelOrder": ["Private", "Protected", "Internal", "Public"],
+  "memberTypeOrder": ["Constructor", "Property", "Method", "Field"],
+  "topLevelTypeOrder": ["Class", "Interface", "Enum", "Struct"]
+}
+```
+
+### Hierarchical Configuration
+
+SA1201ier searches for `.sa1201ierrc` files from the file being formatted up to the root directory, merging all configurations it finds. Child directories override parent settings.
+
+**Example Directory Structure:**
 
 ```
 my-project/
-  .sa1201ierrc                    # Project-wide defaults
-  src/
-    .sa1201ierrc                  # Override for src/ folder
-    Controllers/
-      .sa1201ierrc                # Override for Controllers/ folder
-      MyController.cs             # Uses Controllers/.sa1201ierrc settings
-    Models/
-      MyModel.cs                  # Uses src/.sa1201ierrc settings
-  tests/
-    .sa1201ierrc                  # Different settings for tests
-    MyTests.cs
+├── .sa1201ierrc                    # Project defaults
+├── src/
+│   ├── .sa1201ierrc                # Override for src/
+│   ├── Dtos/
+│   │   ├── .sa1201ierrc            # Custom order for DTOs
+│   │   └── UserDto.cs              # Uses Dtos config
+│   └── Controllers/
+│       ├── .sa1201ierrc            # Custom order for Controllers
+│       └── UserController.cs       # Uses Controllers config
+└── tests/
+    ├── .sa1201ierrc                # Different rules for tests
+    └── UserTests.cs
 ```
+
+**Root `.sa1201ierrc`:**
+```json
+{
+  "alphabeticalSort": false,
+  "sortTopLevelTypes": false
+}
+```
+
+**`src/Dtos/.sa1201ierrc`:**
+```json
+{
+  "alphabeticalSort": true,
+  "memberTypeOrder": ["Property", "Constructor", "Method"]
+}
+```
+
+**Effective configuration for `UserDto.cs`:**
+- `alphabeticalSort`: `true` (from Dtos config)
+- `sortTopLevelTypes`: `false` (from root config)
+- `memberTypeOrder`: `["Property", "Constructor", "Method"]` (from Dtos config)
+
+### Configuration Priority
+
+Settings are applied in this order (highest priority first):
+
+1. **Command-line options** - Override everything
+2. **Nearest `.sa1201ierrc`** - In the file's directory
+3. **Parent `.sa1201ierrc` files** - Walking up the directory tree
+4. **Default values** - Built-in defaults
 
 ### MSBuild Integration
 
@@ -305,8 +418,21 @@ Note: Members within regions and preprocessor blocks maintain their relative ord
 
 ### Alphabetical Sorting
 
-With `--alphabetical-sort` or `"alphabeticalSort": true` in `.sa1201ierrc`:
+Enable alphabetical sorting within the same group of members:
 
+**Configuration:**
+```json
+{
+  "alphabeticalSort": true
+}
+```
+
+**Or use CLI:**
+```bash
+SA1201ier path/to/your/project --alphabetical-sort
+```
+
+**Example:**
 ```csharp
 // Before
 public class MyClass
@@ -325,10 +451,28 @@ public class MyClass
 }
 ```
 
+**Use Cases:**
+- DTOs with many properties become easier to navigate
+- Reduces merge conflicts when multiple developers add properties
+- Makes finding specific members easier in large classes
+
 ### Top-Level Type Sorting
 
-With `--sort-top-level-types` or `"sortTopLevelTypes": true` in `.sa1201ierrc`:
+Sort classes, interfaces, enums, and structs by access level:
 
+**Configuration:**
+```json
+{
+  "sortTopLevelTypes": true
+}
+```
+
+**Or use CLI:**
+```bash
+SA1201ier path/to/your/project --sort-top-level-types
+```
+
+**Example:**
 ```csharp
 // Before
 namespace MyApp;
@@ -347,33 +491,314 @@ internal record InternalRecord { }
 internal class InternalHelper { }
 ```
 
-## Configuration Examples
+**Use Cases:**
+- Files with multiple type definitions
+- Ensures public API appears first
+- Makes file structure more predictable
 
-### Example 1: Enable All Features
+### Static vs Instance Members
+
+Control whether static members appear before or after instance members:
+
+**Configuration:**
+```json
+{
+  "staticMembersFirst": false
+}
+```
+
+**Example:**
+```csharp
+// With staticMembersFirst: true (default)
+public class MyClass
+{
+    public static int StaticField;
+    public int InstanceField;
+}
+
+// With staticMembersFirst: false
+public class MyClass
+{
+    public int InstanceField;
+    public static int StaticField;
+}
+```
+
+### Const vs Non-Const Members
+
+Control whether const members appear before or after non-const members:
+
+**Configuration:**
+```json
+{
+  "constMembersFirst": false
+}
+```
+
+**Example:**
+```csharp
+// With constMembersFirst: true (default)
+public class MyClass
+{
+    public const int MaxValue = 100;
+    public int Value;
+}
+
+// With constMembersFirst: false
+public class MyClass
+{
+    public int Value;
+    public const int MaxValue = 100;
+}
+```
+
+### Custom Access Level Order
+
+Define your own access level ordering. The default follows SA1201 (public → private), but you can reverse it or use any custom order:
+
+**Configuration:**
+```json
+{
+  "accessLevelOrder": ["Private", "Protected", "Internal", "Public"]
+}
+```
+
+**Example:**
+```csharp
+// With custom order above
+public class MyClass
+{
+    private int _privateField;
+    protected int ProtectedField;
+    internal int InternalField;
+    public int PublicField;
+}
+```
+
+**Use Cases:**
+- Private-first development style
+- Implementation-before-interface coding
+- Custom team conventions
+
+### Custom Member Type Order
+
+Define your own member type ordering. The default follows SA1201 (fields → constructors → properties → methods), but you can customize it:
+
+**Configuration:**
+```json
+{
+  "memberTypeOrder": ["Constructor", "Property", "Method", "Field"]
+}
+```
+
+**Example:**
+```csharp
+// With custom order above
+public class MyClass
+{
+    // Constructors first
+    public MyClass() { }
+    
+    // Then properties
+    public int Id { get; set; }
+    public string Name { get; set; }
+    
+    // Then methods
+    public void DoSomething() { }
+    
+    // Then fields
+    private int _field;
+}
+```
+
+**Use Cases:**
+- DTOs where properties should be prominent
+- Test classes where setup methods should be first
+- Custom team conventions
+
+### Custom Top-Level Type Order
+
+Define your own top-level type ordering:
+
+**Configuration:**
+```json
+{
+  "sortTopLevelTypes": true,
+  "topLevelTypeOrder": ["Class", "Interface", "Enum", "Struct"]
+}
+```
+
+**Example:**
+```csharp
+// With custom order above
+namespace MyApp;
+
+// Classes first
+public class MyClass { }
+
+// Then interfaces
+public interface IMyInterface { }
+
+// Then enums
+public enum MyEnum { }
+
+// Then structs
+public struct MyStruct { }
+```
+
+### Real-World Configuration Examples
+
+#### Example 1: DTO Configuration
+
+For Data Transfer Objects, prioritize properties and enable alphabetical sorting:
 
 ```json
 {
   "alphabeticalSort": true,
-  "sortTopLevelTypes": true
+  "memberTypeOrder": ["Property", "Constructor", "Method", "Field"],
+  "staticMembersFirst": false
 }
 ```
 
-### Example 2: Mixed Configuration
+#### Example 2: Private-First Development Style
+
+Some teams prefer seeing private implementation first:
+
+```json
+{
+  "accessLevelOrder": [
+    "Private",
+    "PrivateProtected",
+    "Protected",
+    "ProtectedInternal",
+    "Internal",
+    "Public"
+  ],
+  "constMembersFirst": false,
+  "staticMembersFirst": false
+}
+```
+
+#### Example 3: Test Class Configuration
+
+Test classes often benefit from different organization:
+
+```json
+{
+  "alphabeticalSort": true,
+  "memberTypeOrder": ["Field", "Constructor", "Method", "Property"]
+}
+```
+
+#### Example 4: Controller Configuration
+
+For MVC/API controllers:
+
+```json
+{
+  "alphabeticalSort": false,
+  "memberTypeOrder": ["Constructor", "Method", "Field", "Property"],
+  "accessLevelOrder": ["Public", "Private", "Protected", "Internal"]
+}
+```
+
+### Using Configuration in Your Workflow
+
+#### For New Projects
+
+Start with a project-wide configuration:
+
+```bash
+cd my-project
+SA1201ier --init-config
+# Edit .sa1201ierrc to your preferences
+git add .sa1201ierrc
+git commit -m "Add SA1201ier configuration"
+```
+
+#### For Existing Projects
+
+Use hierarchical configuration for gradual adoption:
 
 ```
-project/
-  .sa1201ierrc                    # Root: alphabeticalSort off
-  src/
-    .sa1201ierrc                  # src/: alphabeticalSort on
-    Controllers/
-      .sa1201ierrc                # Controllers/: both features on
+my-project/
+├── .sa1201ierrc              # Minimal changes by default
+└── src/
+    └── NewFeature/
+        └── .sa1201ierrc      # Strict formatting for new code
 ```
+
+#### For Mixed Codebases
+
+Different rules for different areas:
+
+```
+my-project/
+├── .sa1201ierrc              # Project defaults
+├── src/
+│   ├── Dtos/
+│   │   └── .sa1201ierrc      # Alphabetical, properties-first
+│   ├── Controllers/
+│   │   └── .sa1201ierrc      # Public methods first
+│   └── Models/
+│       └── .sa1201ierrc      # Standard SA1201
+└── tests/
+    └── .sa1201ierrc          # Alphabetical for tests
+```
+
+### Command-Line Overrides
+
+Command-line options override all configuration files:
+
+```bash
+# Override config files with CLI options
+SA1201ier ./src --alphabetical-sort
+
+# Test configuration before committing
+SA1201ier ./src/Models --alphabetical-sort --check
+
+# Apply multiple options
+SA1201ier ./src --alphabetical-sort --sort-top-level-types
+```
+
+### Best Practices
+
+1. **Start Simple** - Begin with default settings and add customization as needed
+2. **Document Your Choices** - Use JSON comments to explain why you chose specific settings
+3. **Use Hierarchical Config** - Define project defaults at root, override for specific areas
+4. **Test Before Committing** - Use `--check` to preview changes before applying
+5. **Version Control** - Always commit `.sa1201ierrc` files to ensure team consistency
+
+## Troubleshooting
+
+### Configuration Not Working
+
+- Ensure the file is named exactly `.sa1201ierrc` (with leading dot)
+- Verify JSON syntax is valid (use a JSON validator or check for common errors)
+- Use `--verbose` to see which config files are being loaded
+- Remember: CLI options override all config files
+
+### Finding the Right Configuration
+
+If you're unsure what configuration to use:
+
+1. Create a sample config: `SA1201ier --init-config`
+2. Test different options: `SA1201ier ./src --alphabetical-sort --check`
+3. Apply what works: Copy successful CLI options to your `.sa1201ierrc`
+
+### Unexpected Ordering
+
+- Check for multiple `.sa1201ierrc` files in parent directories
+- Verify custom order arrays have correct values (case-sensitive)
+- Use `--verbose` to see which configuration is being applied
 
 ## Future Enhancements
 
 - Integration with popular formatters like CSharpier
-- Support for additional StyleCop ordering rules
+- Support for additional StyleCop ordering rules  
 - Visual Studio extension
+- `preserveRegionOrder` option to prevent reordering within regions
+- `ignorePatterns` for excluding files/directories
 
 ## Contributing
 

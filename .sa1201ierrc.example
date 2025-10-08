@@ -14,5 +14,54 @@
 
   // Sort top-level types (classes, records, interfaces) by access level
   // Default: false
-  "sortTopLevelTypes": false
+  "sortTopLevelTypes": false,
+
+  // Whether static members should come before instance members
+  // Default: true
+  "staticMembersFirst": true,
+
+  // Whether const members should come before non-const members
+  // Default: true
+  "constMembersFirst": true,
+
+  // Custom order for access levels
+  // Valid values: "Public", "Internal", "ProtectedInternal", "Protected", "PrivateProtected", "Private"
+  // Default order (if not specified):
+  "accessLevelOrder": [
+    "Public",
+    "Internal",
+    "ProtectedInternal",
+    "Protected",
+    "PrivateProtected",
+    "Private"
+  ],
+
+  // Custom order for member types within a class
+  // Valid values: "Field", "Constructor", "Destructor", "Delegate", "Event", 
+  //               "Enum", "Interface", "Property", "Indexer", "Method", "Struct", "Class"
+  // Default order (if not specified):
+  "memberTypeOrder": [
+    "Field",
+    "Constructor",
+    "Destructor",
+    "Delegate",
+    "Event",
+    "Enum",
+    "Interface",
+    "Property",
+    "Indexer",
+    "Method",
+    "Struct",
+    "Class"
+  ],
+
+  // Custom order for top-level types (when sortTopLevelTypes is true)
+  // Valid values: "Enum", "Interface", "Struct", "Class"
+  // Default order (if not specified):
+  "topLevelTypeOrder": [
+    "Enum",
+    "Interface",
+    "Struct",
+    "Class"
+  ]
 }

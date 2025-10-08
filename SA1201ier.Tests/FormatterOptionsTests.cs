@@ -19,6 +19,11 @@ public class FormatterOptionsTests
         // Assert
         Assert.False(options.AlphabeticalSort);
         Assert.False(options.SortTopLevelTypes);
+        Assert.True(options.StaticMembersFirst);
+        Assert.True(options.ConstMembersFirst);
+        Assert.Null(options.AccessLevelOrder);
+        Assert.Null(options.MemberTypeOrder);
+        Assert.Null(options.TopLevelTypeOrder);
     }
 
     /// <summary>
@@ -113,5 +118,94 @@ public class FormatterOptionsTests
         // Assert - original should be unchanged
         Assert.False(options1.AlphabeticalSort);
         Assert.True(merged.AlphabeticalSort);
+    }
+
+    /// <summary>
+    /// Tests that custom access level order can be set.
+    /// </summary>
+    [Fact]
+    public void CustomAccessLevelOrder_CanBeSet()
+    {
+        // Arrange & Act
+        var options = new FormatterOptions
+        {
+            AccessLevelOrder = new List<string> { "Private", "Public" },
+        };
+
+        // Assert
+        Assert.NotNull(options.AccessLevelOrder);
+        Assert.Equal(2, options.AccessLevelOrder.Count);
+        Assert.Equal("Private", options.AccessLevelOrder[0]);
+        Assert.Equal("Public", options.AccessLevelOrder[1]);
+    }
+
+    /// <summary>
+    /// Tests that custom member type order can be set.
+    /// </summary>
+    [Fact]
+    public void CustomMemberTypeOrder_CanBeSet()
+    {
+        // Arrange & Act
+        var options = new FormatterOptions
+        {
+            MemberTypeOrder = new List<string> { "Method", "Property", "Field" },
+        };
+
+        // Assert
+        Assert.NotNull(options.MemberTypeOrder);
+        Assert.Equal(3, options.MemberTypeOrder.Count);
+        Assert.Equal("Method", options.MemberTypeOrder[0]);
+    }
+
+    /// <summary>
+    /// Tests that MergeWith preserves custom orders when other has null values.
+    /// </summary>
+    [Fact]
+    public void MergeWith_PreservesCustomOrdersWhenOtherIsNull()
+    {
+        // Arrange
+        var baseOptions = new FormatterOptions
+        {
+            AccessLevelOrder = new List<string> { "Private", "Public" },
+            MemberTypeOrder = new List<string> { "Method", "Field" },
+        };
+
+        var overrideOptions = new FormatterOptions { AlphabeticalSort = true };
+
+        // Act
+        var merged = baseOptions.MergeWith(overrideOptions);
+
+        // Assert
+        Assert.NotNull(merged.AccessLevelOrder);
+        Assert.Equal(2, merged.AccessLevelOrder.Count);
+        Assert.NotNull(merged.MemberTypeOrder);
+        Assert.Equal(2, merged.MemberTypeOrder.Count);
+    }
+
+    /// <summary>
+    /// Tests that MergeWith overrides custom orders when other has values.
+    /// </summary>
+    [Fact]
+    public void MergeWith_OverridesCustomOrdersWhenOtherHasValues()
+    {
+        // Arrange
+        var baseOptions = new FormatterOptions
+        {
+            AccessLevelOrder = new List<string> { "Private", "Public" },
+        };
+
+        var overrideOptions = new FormatterOptions
+        {
+            AccessLevelOrder = new List<string> { "Public", "Private", "Internal" },
+        };
+
+        // Act
+        var merged = baseOptions.MergeWith(overrideOptions);
+
+        // Assert
+        Assert.NotNull(merged.AccessLevelOrder);
+        Assert.Equal(3, merged.AccessLevelOrder.Count);
+        Assert.Equal("Public", merged.AccessLevelOrder[0]);
+        Assert.Equal("Internal", merged.AccessLevelOrder[2]);
     }
 }

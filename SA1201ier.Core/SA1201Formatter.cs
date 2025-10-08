@@ -391,19 +391,71 @@ public class Sa1201IerFormatter
     /// <returns>The ordered members.</returns>
     private List<MemberOrderInfo> OrderMembers(List<MemberOrderInfo> members)
     {
-        var query = members
-            .OrderBy(m => m.MemberType)
-            .ThenBy(m => m.IsConst ? 0 : 1)
-            .ThenBy(m => m.IsStatic ? 0 : 1)
-            .ThenBy(m => m.AccessLevel);
+        // Build custom sort keys
+        var membersWithSortKeys = members
+            .Select(m => new
+            {
+                Member = m,
+                MemberTypeOrder = GetMemberTypeSortKey(m.MemberType),
+                AccessLevelOrder = GetAccessLevelSortKey(m.AccessLevel),
+                ConstOrder = _options.ConstMembersFirst ? (m.IsConst ? 0 : 1) : (m.IsConst ? 1 : 0),
+                StaticOrder = _options.StaticMembersFirst
+                    ? (m.IsStatic ? 0 : 1)
+                    : (m.IsStatic ? 1 : 0),
+                Name = GetMemberName(m.Node),
+            })
+            .ToList();
+
+        // Sort using custom orders
+        var sorted = membersWithSortKeys
+            .OrderBy(m => m.MemberTypeOrder)
+            .ThenBy(m => m.ConstOrder)
+            .ThenBy(m => m.StaticOrder)
+            .ThenBy(m => m.AccessLevelOrder);
 
         // Add alphabetical sorting as the final sort key if enabled
         if (_options.AlphabeticalSort)
         {
-            query = query.ThenBy(m => GetMemberName(m.Node));
+            sorted = sorted.ThenBy(m => m.Name);
         }
 
-        return query.ToList();
+        return sorted.Select(m => m.Member).ToList();
+    }
+
+    /// <summary>
+    /// Gets the sort key for a member type based on custom configuration.
+    /// </summary>
+    /// <param name="memberType">The member type.</param>
+    /// <returns>The sort key (lower values come first).</returns>
+    private int GetMemberTypeSortKey(MemberType memberType)
+    {
+        if (_options.MemberTypeOrder == null || _options.MemberTypeOrder.Count == 0)
+        {
+            // Default order
+            return (int)memberType;
+        }
+
+        var memberTypeName = memberType.ToString();
+        var index = _options.MemberTypeOrder.IndexOf(memberTypeName);
+        return index >= 0 ? index : 999; // Put unspecified types at the end
+    }
+
+    /// <summary>
+    /// Gets the sort key for an access level based on custom configuration.
+    /// </summary>
+    /// <param name="accessLevel">The access level.</param>
+    /// <returns>The sort key (lower values come first).</returns>
+    private int GetAccessLevelSortKey(AccessLevel accessLevel)
+    {
+        if (_options.AccessLevelOrder == null || _options.AccessLevelOrder.Count == 0)
+        {
+            // Default order
+            return (int)accessLevel;
+        }
+
+        var accessLevelName = accessLevel.ToString();
+        var index = _options.AccessLevelOrder.IndexOf(accessLevelName);
+        return index >= 0 ? index : 999; // Put unspecified levels at the end
     }
 
     /// <summary>
@@ -863,19 +915,42 @@ public class Sa1201IerFormatter
     }
 
     /// <summary>
-    /// Gets the sort order for top-level types.
+    /// Gets the sort order for top-level types based on custom configuration.
     /// </summary>
-    private static int GetTopLevelTypeOrder(BaseTypeDeclarationSyntax type)
+    private int GetTopLevelTypeOrder(BaseTypeDeclarationSyntax type)
     {
-        return type switch
+        if (_options.TopLevelTypeOrder == null || _options.TopLevelTypeOrder.Count == 0)
         {
-            EnumDeclarationSyntax => 0,
-            InterfaceDeclarationSyntax => 1,
-            StructDeclarationSyntax => 2,
-            ClassDeclarationSyntax => 3,
-            RecordDeclarationSyntax => 3, // Same as class
-            _ => 4,
+            // Default order
+            return type switch
+            {
+                EnumDeclarationSyntax => 0,
+                InterfaceDeclarationSyntax => 1,
+                StructDeclarationSyntax => 2,
+                ClassDeclarationSyntax => 3,
+                RecordDeclarationSyntax => 3, // Same as class
+                _ => 4,
+            };
+        }
+
+        // Use custom order
+        var typeName = type switch
+        {
+            EnumDeclarationSyntax => "Enum",
+            InterfaceDeclarationSyntax => "Interface",
+            StructDeclarationSyntax => "Struct",
+            ClassDeclarationSyntax => "Class",
+            RecordDeclarationSyntax => "Class", // Records are treated as classes
+            _ => null,
         };
+
+        if (typeName == null)
+        {
+            return 999; // Unknown types at the end
+        }
+
+        var index = _options.TopLevelTypeOrder.IndexOf(typeName);
+        return index >= 0 ? index : 999;
     }
 
     /// <summary>

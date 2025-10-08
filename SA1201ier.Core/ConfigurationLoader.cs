@@ -131,6 +131,33 @@ public class ConfigurationLoader
         {
             alphabeticalSort = false,
             sortTopLevelTypes = false,
+            staticMembersFirst = true,
+            constMembersFirst = true,
+            accessLevelOrder = new[]
+            {
+                "Public",
+                "Internal",
+                "ProtectedInternal",
+                "Protected",
+                "PrivateProtected",
+                "Private",
+            },
+            memberTypeOrder = new[]
+            {
+                "Field",
+                "Constructor",
+                "Destructor",
+                "Delegate",
+                "Event",
+                "Enum",
+                "Interface",
+                "Property",
+                "Indexer",
+                "Method",
+                "Struct",
+                "Class",
+            },
+            topLevelTypeOrder = new[] { "Enum", "Interface", "Struct", "Class" },
             _comment = "SA1201ier configuration file. See documentation for available options.",
         };
 
