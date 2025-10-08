@@ -1,10 +1,11 @@
 ﻿# SA1201ier
 
-A command-line tool and MSBuild integration for automatically formatting C# files according to StyleCop rule SA1201, which requires elements to be ordered by access level.
+A command-line tool and MSBuild integration for automatically formatting C# files (including Razor files) according to StyleCop rule SA1201, which requires elements to be ordered by access level.
 
 ## Features
 
 - **Command-line tool** for formatting individual files or entire directories
+- **Razor file support** - formats C# code within `@code` blocks in Razor files
 - **MSBuild integration** for automatic formatting during build
 - **Check mode** for CI/CD pipelines to verify formatting without modifying files
 - **Comprehensive test suite** with extensive edge case coverage
@@ -415,6 +416,85 @@ public class MyClass
 ```
 
 Note: Members within regions and preprocessor blocks maintain their relative order, while members outside these blocks are reordered according to SA1201 rules.
+
+## Razor File Support
+
+SA1201ier automatically detects and formats C# code within `@code` blocks in Razor files (`.razor`). The formatter:
+
+- Extracts all `@code` blocks from the Razor file
+- Formats the C# code according to SA1201 rules
+- Preserves all Razor markup and directives
+- Reinserts the formatted code back into the Razor file
+
+**Example:**
+
+```razor
+@page "/counter"
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+    // Before formatting
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+    public int currentCount = 0;
+    private void Reset()
+    {
+        currentCount = 0;
+    }
+}
+```
+
+After formatting:
+
+```razor
+@page "/counter"
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Counter</h1>
+
+<p role="status">Current count: @currentCount</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+    // After formatting - fields before methods, public before private
+    public int currentCount = 0;
+    
+    public void IncrementCount()
+    {
+        currentCount++;
+    }
+    private void Reset()
+    {
+        currentCount = 0;
+    }
+}
+```
+
+**Usage:**
+
+```bash
+# Format a single Razor file
+SA1201ier MyComponent.razor
+
+# Format all C# and Razor files in a directory
+SA1201ier ./Pages
+
+# Check Razor files without formatting
+SA1201ier ./Pages --check
+```
+
+**Note:** SA1201ier processes only the C# code within `@code` blocks. All other Razor syntax (HTML, directives, inline C# expressions) is preserved unchanged.
 
 ### Alphabetical Sorting
 

@@ -176,13 +176,17 @@ internal class Program
     /// </summary>
     private static void ShowHelp()
     {
-        Console.WriteLine("SA1201ier - Format C# files according to StyleCop rule SA1201");
+        Console.WriteLine(
+            "SA1201ier - Format C# and Razor files according to StyleCop rule SA1201"
+        );
         Console.WriteLine();
         Console.WriteLine("Usage:");
         Console.WriteLine("  SA1201ier <path> [options]");
         Console.WriteLine();
         Console.WriteLine("Arguments:");
-        Console.WriteLine("  <path>    The file or directory path to format or check");
+        Console.WriteLine(
+            "  <path>    The file or directory path to format or check (.cs and .razor files)"
+        );
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine(
