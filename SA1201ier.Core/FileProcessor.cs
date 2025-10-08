@@ -5,14 +5,17 @@ namespace SA1201ier.Core;
 /// </summary>
 public class FileProcessor
 {
-    private readonly Sa1201IerFormatter _formatter;
+    private readonly ConfigurationLoader _configLoader;
+    private readonly FormatterOptions? _cliOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileProcessor" /> class.
     /// </summary>
-    public FileProcessor()
+    /// <param name="cliOptions">Optional formatter options from CLI that override config files.</param>
+    public FileProcessor(FormatterOptions? cliOptions = null)
     {
-        _formatter = new Sa1201IerFormatter();
+        _configLoader = new ConfigurationLoader();
+        _cliOptions = cliOptions;
     }
 
     /// <summary>
@@ -93,15 +96,24 @@ public class FileProcessor
             throw new ArgumentException("Only C# files (.cs) are supported.", nameof(filePath));
         }
 
+        // Load configuration for this file (hierarchical merge from config files)
+        var fileOptions = _configLoader.LoadConfiguration(filePath);
+
+        // CLI options override file-based config
+        var effectiveOptions =
+            _cliOptions != null ? fileOptions.MergeWith(_cliOptions) : fileOptions;
+
+        var formatter = new Sa1201IerFormatter(effectiveOptions);
+
         FormattingResult result;
 
         if (check)
         {
-            result = await _formatter.CheckFileAsync(filePath);
+            result = await formatter.CheckFileAsync(filePath);
         }
         else
         {
-            result = await _formatter.FormatFileAsync(filePath);
+            result = await formatter.FormatFileAsync(filePath);
 
             if (writeChanges && result.HasChanges && result.FormattedContent != null)
             {

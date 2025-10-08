@@ -1,4 +1,4 @@
-# SA1201ier
+﻿# SA1201ier
 
 A command-line tool and MSBuild integration for automatically formatting C# files according to StyleCop rule SA1201, which requires elements to be ordered by access level.
 
@@ -10,6 +10,9 @@ A command-line tool and MSBuild integration for automatically formatting C# file
 - **Comprehensive test suite** with extensive edge case coverage
 - **Preserves comments, attributes, and formatting** while reordering members
 - **Respects preprocessor directives and regions** - members within `#if`/`#endif` or `#region`/`#endregion` blocks are kept together and reordered independently
+- **Hierarchical configuration** - use `.sa1201ierrc` files to configure options per directory
+- **Alphabetical sorting** - optionally sort members alphabetically within same access level
+- **Top-level type sorting** - optionally sort classes, records, interfaces by access level
 
 ## What is SA1201?
 
@@ -66,6 +69,15 @@ SA1201ier path/to/your/project --check
 
 # Verbose output
 SA1201ier path/to/your/project --verbose
+
+# Sort members alphabetically within same access level
+SA1201ier path/to/your/project --alphabetical-sort
+
+# Sort top-level types by access level
+SA1201ier path/to/your/project --sort-top-level-types
+
+# Create a sample .sa1201ierrc config file
+SA1201ier --init-config
 ```
 
 #### Options
@@ -73,7 +85,54 @@ SA1201ier path/to/your/project --verbose
 - `<path>` - Required. The file or directory path to format or check
 - `-c, --check` - Check for formatting violations without making changes
 - `-v, --verbose` - Show detailed output
+- `--alphabetical-sort` - Sort members alphabetically within same access level
+- `--sort-top-level-types` - Sort top-level types (classes, records, etc.) by access level
+- `--init-config` - Create a sample .sa1201ierrc configuration file
 - `-h, --help` - Show help message
+
+### Configuration Files
+
+SA1201ier supports hierarchical configuration via `.sa1201ierrc` JSON files. Place a `.sa1201ierrc` file in any directory to configure formatting options for that directory and its subdirectories.
+
+#### Creating a Config File
+
+```bash
+# Create a sample .sa1201ierrc in the current directory
+SA1201ier --init-config
+```
+
+#### Config File Format
+
+```json
+{
+  "alphabeticalSort": true,
+  "sortTopLevelTypes": false
+}
+```
+
+#### Configuration Hierarchy
+
+- SA1201ier searches for `.sa1201ierrc` files starting from the file being formatted up to the root directory
+- Settings are merged hierarchically: child directory settings override parent directory settings
+- CLI options override all config file settings
+- This allows you to have different formatting rules for different parts of your codebase
+
+#### Example Directory Structure
+
+```
+my-project/
+  .sa1201ierrc                    # Project-wide defaults
+  src/
+    .sa1201ierrc                  # Override for src/ folder
+    Controllers/
+      .sa1201ierrc                # Override for Controllers/ folder
+      MyController.cs             # Uses Controllers/.sa1201ierrc settings
+    Models/
+      MyModel.cs                  # Uses src/.sa1201ierrc settings
+  tests/
+    .sa1201ierrc                  # Different settings for tests
+    MyTests.cs
+```
 
 ### MSBuild Integration
 
@@ -244,12 +303,77 @@ public class MyClass
 
 Note: Members within regions and preprocessor blocks maintain their relative order, while members outside these blocks are reordered according to SA1201 rules.
 
+### Alphabetical Sorting
+
+With `--alphabetical-sort` or `"alphabeticalSort": true` in `.sa1201ierrc`:
+
+```csharp
+// Before
+public class MyClass
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+    public string Email { get; set; }
+}
+
+// After (with alphabetical sorting)
+public class MyClass
+{
+    public int Age { get; set; }
+    public string Email { get; set; }
+    public string Name { get; set; }
+}
+```
+
+### Top-Level Type Sorting
+
+With `--sort-top-level-types` or `"sortTopLevelTypes": true` in `.sa1201ierrc`:
+
+```csharp
+// Before
+namespace MyApp;
+
+internal class InternalHelper { }
+public class PublicApi { }
+public record PublicRecord { }
+internal record InternalRecord { }
+
+// After (with top-level type sorting)
+namespace MyApp;
+
+public class PublicApi { }
+public record PublicRecord { }
+internal record InternalRecord { }
+internal class InternalHelper { }
+```
+
+## Configuration Examples
+
+### Example 1: Enable All Features
+
+```json
+{
+  "alphabeticalSort": true,
+  "sortTopLevelTypes": true
+}
+```
+
+### Example 2: Mixed Configuration
+
+```
+project/
+  .sa1201ierrc                    # Root: alphabeticalSort off
+  src/
+    .sa1201ierrc                  # src/: alphabeticalSort on
+    Controllers/
+      .sa1201ierrc                # Controllers/: both features on
+```
+
 ## Future Enhancements
 
-- Visual Studio extension for real-time formatting
-- EditorConfig support for customization
 - Integration with popular formatters like CSharpier
 - Support for additional StyleCop ordering rules
+- Visual Studio extension
 
 ## Contributing
 
