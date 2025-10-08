@@ -48,7 +48,7 @@
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackTaskDependencies</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
   <!-- Package files for each target framework - this runs once per TFM during inner builds -->
-  <Target Name="PackTaskDependencies" DependsOnTargets="Build">
+  <Target Name="PackTaskDependencies">
     <ItemGroup>
       <!-- Include all DLLs except MSBuild assemblies -->
       <TfmSpecificPackageFile
