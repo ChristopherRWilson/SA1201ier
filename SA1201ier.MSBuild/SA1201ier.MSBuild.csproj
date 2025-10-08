@@ -43,8 +43,12 @@
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\" />
   </ItemGroup>
-  <!-- Package files for each target framework after build -->
-  <Target Name="PackTaskDependencies" AfterTargets="Build" Condition="'$(TargetFramework)' != ''">
+  <!-- This property tells NuGet to call our custom target during pack -->
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackTaskDependencies</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+  <!-- Package files for each target framework - this runs once per TFM during inner builds -->
+  <Target Name="PackTaskDependencies">
     <ItemGroup>
       <!-- Include all DLLs except MSBuild assemblies -->
       <TfmSpecificPackageFile
@@ -52,8 +56,6 @@
         Exclude="$(OutputPath)Microsoft.Build.*.dll"
       >
         <PackagePath>build\$(TargetFramework)\</PackagePath>
-        <Pack>true</Pack>
-        <Visible>false</Visible>
       </TfmSpecificPackageFile>
       <!-- Include deps.json -->
       <TfmSpecificPackageFile
@@ -61,8 +63,6 @@
         Condition="Exists('$(OutputPath)$(AssemblyName).deps.json')"
       >
         <PackagePath>build\$(TargetFramework)\</PackagePath>
-        <Pack>true</Pack>
-        <Visible>false</Visible>
       </TfmSpecificPackageFile>
       <!-- Include runtimeconfig.json -->
       <TfmSpecificPackageFile
@@ -70,12 +70,24 @@
         Condition="Exists('$(OutputPath)$(AssemblyName).runtimeconfig.json')"
       >
         <PackagePath>build\$(TargetFramework)\</PackagePath>
-        <Pack>true</Pack>
-        <Visible>false</Visible>
       </TfmSpecificPackageFile>
     </ItemGroup>
+    <!-- Include localization resource DLLs -->
     <ItemGroup>
-      <None Include="@(TfmSpecificPackageFile)" />
+      <_LocalizationFiles
+        Include="$(OutputPath)*\**\*.dll"
+        Exclude="$(OutputPath)$(AssemblyName).dll;$(OutputPath)Microsoft.Build.*.dll;$(OutputPath)runtimes\**\*.dll"
+      />
+      <TfmSpecificPackageFile Include="@(_LocalizationFiles)">
+        <PackagePath>build\$(TargetFramework)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+    <!-- Include runtime-specific native assemblies -->
+    <ItemGroup>
+      <_RuntimeFiles Include="$(OutputPath)runtimes\**\*.dll" />
+      <TfmSpecificPackageFile Include="@(_RuntimeFiles)">
+        <PackagePath>build\$(TargetFramework)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      </TfmSpecificPackageFile>
     </ItemGroup>
   </Target>
 </Project>
