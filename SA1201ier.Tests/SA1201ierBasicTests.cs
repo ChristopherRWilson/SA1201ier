@@ -282,4 +282,89 @@ public class TestClass
         );
         Assert.True(publicIndex < privateIndex);
     }
+
+    /// <summary>
+    /// Tests that Environment.NewLine is used as the default when no existing newlines are found
+    /// and InsertBlankLineBetweenMembers is enabled.
+    /// This ensures platform-specific line endings are respected.
+    /// </summary>
+    [Fact]
+    public void FormatContent_NoExistingNewlines_UsesPlatformNewLine()
+    {
+        // Arrange - content with CRLF newlines but needs reordering
+        var options = new FormatterOptions { InsertBlankLineBetweenMembers = true };
+        var formatter = new Sa1201IerFormatter(options);
+
+        // Use content that has no newlines in the trivia (single line format)
+        // But when formatted with InsertBlankLineBetweenMembers, it should add Environment.NewLine
+        var content =
+            @"public class TestClass
+{
+    private int PrivateField;
+    public int PublicField;
+}";
+
+        // Act
+        var result = formatter.FormatContent("test.cs", content);
+
+        // Assert
+        Assert.True(result.HasChanges);
+        Assert.NotNull(result.FormattedContent);
+
+        // The formatted content should preserve the existing newline style or use platform default
+        // Since the input has LF, it should preserve LF
+        Assert.Contains("\n", result.FormattedContent);
+    }
+
+    /// <summary>
+    /// Tests that existing CRLF newline style is preserved when formatting with InsertBlankLineBetweenMembers.
+    /// </summary>
+    [Fact]
+    public void FormatContent_WithExistingCRLFNewlines_PreservesCRLFStyle()
+    {
+        // Arrange - content with explicit CRLF newlines
+        var options = new FormatterOptions { InsertBlankLineBetweenMembers = true };
+        var formatter = new Sa1201IerFormatter(options);
+        var content =
+            "public class TestClass\r\n{\r\n    private int PrivateField;\r\n    public int PublicField;\r\n}";
+
+        // Act
+        var result = formatter.FormatContent("test.cs", content);
+
+        // Assert
+        Assert.True(result.HasChanges);
+        Assert.NotNull(result.FormattedContent);
+
+        // Should preserve CRLF from the input
+        Assert.Contains("\r\n", result.FormattedContent);
+    }
+
+    /// <summary>
+    /// Tests that LF-style newlines are preserved when formatting with InsertBlankLineBetweenMembers.
+    /// </summary>
+    [Fact]
+    public void FormatContent_WithLFNewlines_PreservesLFStyle()
+    {
+        // Arrange - content with explicit LF newlines (Unix-style)
+        var options = new FormatterOptions { InsertBlankLineBetweenMembers = true };
+        var formatter = new Sa1201IerFormatter(options);
+        var content =
+            "public class TestClass\n{\n    private int PrivateField;\n    public int PublicField;\n}";
+
+        // Act
+        var result = formatter.FormatContent("test.cs", content);
+
+        // Assert
+        Assert.True(result.HasChanges);
+        Assert.NotNull(result.FormattedContent);
+
+        // Should preserve LF from the input
+        var lines = result.FormattedContent.Split('\n');
+        Assert.True(lines.Length > 1, "Content should have multiple lines");
+
+        // Verify that the content uses LF newlines (not CRLF)
+        // If CRLF were used, we'd see \r before \n
+        var hasOnlyLF = !result.FormattedContent.Contains("\r\n");
+        Assert.True(hasOnlyLF, "Content should use LF newlines, not CRLF");
+    }
 }

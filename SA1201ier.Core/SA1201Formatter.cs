@@ -746,7 +746,7 @@ public class Sa1201IerFormatter
         var newTrivia = new List<SyntaxTrivia>();
 
         // Find the newline style used in the original trivia (for consistency)
-        var newlineText = "\r\n"; // Default to CRLF
+        var newlineText = Environment.NewLine; // Default to platform-specific newline
         foreach (var trivia in leadingTrivia)
         {
             if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
