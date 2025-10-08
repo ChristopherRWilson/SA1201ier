@@ -177,6 +177,12 @@ To test the integration:
 # Test command
 dotnet new console -n TestProject
 cd TestProject
-# Add packages and configuration
+dotnet add package CSharpier
+dotnet add package SA1201ier.MSBuild
+# Enable format on build (add to .csproj or use CLI if available)
+# Example: Add to .csproj
+# <PropertyGroup>
+#   <FormatOnBuild>true</FormatOnBuild>
+# </PropertyGroup>
 dotnet build
 ```
