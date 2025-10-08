@@ -1,13 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <!-- Target .NET 6.0 and later for broader compatibility -->
+    <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageId>SA1201ier.Core</PackageId>
     <Title>SA1201ier Core Library</Title>
     <Authors>Chris Wilson</Authors>
-    <Description>Core library for SA1201ier - automatically format C# files according to StyleCop rule SA1201 (elements should be ordered by access level).</Description>
+    <Description>Core library for SA1201ier - automatically format C# files according to StyleCop rule SA1201 (elements should be ordered by access level). Supports .NET 6.0 and later.</Description>
     <PackageTags>stylecop;sa1201;formatter;roslyn;csharp;code-formatter</PackageTags>
     <PackageProjectUrl>https://github.com/ChristopherRWilson/SA1201ier</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ChristopherRWilson/SA1201ier</RepositoryUrl>
@@ -24,8 +26,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="[4.8.0,5.0.0)" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Enums\" />
+    <!-- Polyfill for C# 11 features on .NET 6 -->
+    <PackageReference Include="PolySharp" Version="1.14.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

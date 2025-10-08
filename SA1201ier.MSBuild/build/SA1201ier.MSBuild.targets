@@ -1,8 +1,24 @@
 <Project>
-  <UsingTask
-    TaskName="SA1201ier.MSBuild.FormatSa1201Task"
-    AssemblyFile="$(MSBuildThisFileDirectory)\net9.0\SA1201ier.MSBuild.dll"
-  />
+  <!-- Determine which target framework to use based on the project's target framework -->
+  <PropertyGroup>
+    <SA1201TaskPath
+      Condition="'$(MSBuildRuntimeType)' == 'Core' AND '$(TargetFramework)' != '' AND $(TargetFramework.StartsWith('net9'))"
+      >$(MSBuildThisFileDirectory)net9.0\SA1201ier.MSBuild.dll</SA1201TaskPath
+    >
+    <SA1201TaskPath
+      Condition="'$(MSBuildRuntimeType)' == 'Core' AND '$(TargetFramework)' != '' AND $(TargetFramework.StartsWith('net8'))"
+      >$(MSBuildThisFileDirectory)net8.0\SA1201ier.MSBuild.dll</SA1201TaskPath
+    >
+    <SA1201TaskPath
+      Condition="'$(MSBuildRuntimeType)' == 'Core' AND '$(TargetFramework)' != '' AND $(TargetFramework.StartsWith('net6'))"
+      >$(MSBuildThisFileDirectory)net6.0\SA1201ier.MSBuild.dll</SA1201TaskPath
+    >
+    <!-- Default to net6.0 if no match or for older frameworks -->
+    <SA1201TaskPath Condition="'$(SA1201TaskPath)' == ''"
+      >$(MSBuildThisFileDirectory)net6.0\SA1201ier.MSBuild.dll</SA1201TaskPath
+    >
+  </PropertyGroup>
+  <UsingTask TaskName="SA1201ier.MSBuild.FormatSa1201Task" AssemblyFile="$(SA1201TaskPath)" />
   <Target
     Name="FormatSA1201"
     BeforeTargets="CSharpierFormat;CoreCompile"
