@@ -682,7 +682,10 @@ public class TestClass
         Assert.Contains("#endif", result.FormattedContent);
 
         // Verify the structure is maintained
-        var lines = result.FormattedContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        var lines = result.FormattedContent.Split(
+            new[] { '\r', '\n' },
+            StringSplitOptions.RemoveEmptyEntries
+        );
         var debugIfLine = Array.FindIndex(lines, l => l.Contains("#if DEBUG"));
         var traceIfLine = Array.FindIndex(lines, l => l.Contains("#if TRACE"));
         var debugTraceMethodLine = Array.FindIndex(lines, l => l.Contains("DebugTraceMethod"));
