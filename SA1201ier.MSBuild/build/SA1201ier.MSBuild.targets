@@ -2,16 +2,21 @@
   <!-- Determine which target framework to use based on available .NET SDK -->
   <PropertyGroup>
     <!-- Try to detect the best matching framework based on the target framework -->
-    <SA1201TaskPath Condition="'$(SA1201TaskPath)' == '' AND '$(TargetFramework)' != ''">$(MSBuildThisFileDirectory)$(TargetFramework)\SA1201ier.MSBuild.dll</SA1201TaskPath>
-    
+    <SA1201TaskPath Condition="'$(SA1201TaskPath)' == '' AND '$(TargetFramework)' != ''"
+      >$(MSBuildThisFileDirectory)$(TargetFramework)\SA1201ier.MSBuild.dll</SA1201TaskPath
+    >
     <!-- Fall back to checking if specific framework folders exist -->
-    <SA1201TaskPath Condition="'$(SA1201TaskPath)' == '' OR !Exists('$(SA1201TaskPath)')">$(MSBuildThisFileDirectory)net9.0\SA1201ier.MSBuild.dll</SA1201TaskPath>
-    <SA1201TaskPath Condition="!Exists('$(SA1201TaskPath)')">$(MSBuildThisFileDirectory)net8.0\SA1201ier.MSBuild.dll</SA1201TaskPath>
-    <SA1201TaskPath Condition="!Exists('$(SA1201TaskPath)')">$(MSBuildThisFileDirectory)net6.0\SA1201ier.MSBuild.dll</SA1201TaskPath>
+    <SA1201TaskPath Condition="'$(SA1201TaskPath)' == '' OR !Exists('$(SA1201TaskPath)')"
+      >$(MSBuildThisFileDirectory)net9.0\SA1201ier.MSBuild.dll</SA1201TaskPath
+    >
+    <SA1201TaskPath Condition="!Exists('$(SA1201TaskPath)')"
+      >$(MSBuildThisFileDirectory)net8.0\SA1201ier.MSBuild.dll</SA1201TaskPath
+    >
+    <SA1201TaskPath Condition="!Exists('$(SA1201TaskPath)')"
+      >$(MSBuildThisFileDirectory)net6.0\SA1201ier.MSBuild.dll</SA1201TaskPath
+    >
   </PropertyGroup>
-  
   <UsingTask TaskName="SA1201ier.MSBuild.FormatSa1201Task" AssemblyFile="$(SA1201TaskPath)" />
-  
   <Target
     Name="FormatSA1201"
     BeforeTargets="CSharpierFormat;CoreCompile"
