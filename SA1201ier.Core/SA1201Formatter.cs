@@ -50,7 +50,8 @@ public class Sa1201IerFormatter
     }
 
     /// <summary>
-    /// Analyzes a type declaration for SA1201 violations.
+    /// Analyzes a type declaration for SA1201 violations while respecting
+    /// preprocessor directives and region boundaries.
     /// </summary>
     /// <param name="typeDeclaration">The type declaration to analyze.</param>
     /// <param name="violations">The list to add violations to.</param>
@@ -59,33 +60,58 @@ public class Sa1201IerFormatter
         List<Sa1201Violation> violations
     )
     {
-        var members = typeDeclaration
-            .Members.Select(GetMemberOrderInfo)
-            .Where(m => m != null)
-            .Cast<MemberOrderInfo>()
-            .ToList();
+        var allMembers = typeDeclaration.Members.ToList();
 
-        var sortedMembers = OrderMembers(members);
-
-        for (var i = 0; i < members.Count; i++)
+        if (allMembers.Count == 0)
         {
-            if (members[i].Node == sortedMembers[i].Node)
+            return;
+        }
+
+        // Group members by their preprocessor/region context
+        var memberGroups = GroupMembersByDirectives(allMembers);
+
+        foreach (var group in memberGroups)
+        {
+            if (group.Members.Count == 0)
+            {
                 continue;
+            }
 
-            var lineSpan = typeDeclaration.SyntaxTree.GetLineSpan(members[i].Node.Span);
-            var memberName = GetMemberName(members[i].Node);
+            // Get member order info for this group
+            var memberInfos = group
+                .Members.Select(GetMemberOrderInfo)
+                .Where(m => m != null)
+                .Cast<MemberOrderInfo>()
+                .ToList();
 
-            violations.Add(
-                new Sa1201Violation(
-                    lineSpan.StartLinePosition.Line + 1,
-                    lineSpan.StartLinePosition.Character + 1,
-                    $"{GetMemberTypeString(members[i])} '{memberName}' should be ordered by access level. "
-                        + $"Expected: {GetAccessLevelString(sortedMembers[i].AccessLevel)}, "
-                        + $"Actual: {GetAccessLevelString(members[i].AccessLevel)}",
-                    memberName
-                )
-            );
-            break;
+            if (memberInfos.Count == 0)
+            {
+                continue;
+            }
+
+            var sortedMembers = OrderMembers(memberInfos);
+
+            // Check if this group has violations
+            for (var i = 0; i < memberInfos.Count; i++)
+            {
+                if (memberInfos[i].Node == sortedMembers[i].Node)
+                    continue;
+
+                var lineSpan = typeDeclaration.SyntaxTree.GetLineSpan(memberInfos[i].Node.Span);
+                var memberName = GetMemberName(memberInfos[i].Node);
+
+                violations.Add(
+                    new Sa1201Violation(
+                        lineSpan.StartLinePosition.Line + 1,
+                        lineSpan.StartLinePosition.Character + 1,
+                        $"{GetMemberTypeString(memberInfos[i])} '{memberName}' should be ordered by access level. "
+                            + $"Expected: {GetAccessLevelString(sortedMembers[i].AccessLevel)}, "
+                            + $"Actual: {GetAccessLevelString(memberInfos[i].AccessLevel)}",
+                        memberName
+                    )
+                );
+                break;
+            }
         }
     }
 
@@ -286,7 +312,8 @@ public class Sa1201IerFormatter
     }
 
     /// <summary>
-    /// Reorders a type declaration according to SA1201 rules.
+    /// Reorders a type declaration according to SA1201 rules while preserving
+    /// preprocessor directives and region boundaries.
     /// </summary>
     /// <param name="typeDeclaration">The type declaration to reorder.</param>
     /// <param name="violations">The list to add violations to.</param>
@@ -296,37 +323,80 @@ public class Sa1201IerFormatter
         List<Sa1201Violation> violations
     )
     {
-        var members = typeDeclaration
-            .Members.Select(GetMemberOrderInfo)
-            .Where(m => m != null)
-            .Cast<MemberOrderInfo>()
-            .ToList();
+        var allMembers = typeDeclaration.Members.ToList();
 
-        if (members.Count == 0)
+        if (allMembers.Count == 0)
         {
             return typeDeclaration;
         }
 
-        var sortedMembers = OrderMembers(members);
+        // Group members by their preprocessor/region context
+        var memberGroups = GroupMembersByDirectives(allMembers);
 
         var needsReordering = false;
-        for (var i = 0; i < members.Count; i++)
+        var reorderedMembers = new List<MemberDeclarationSyntax>();
+
+        foreach (var group in memberGroups)
         {
-            if (members[i].Node == sortedMembers[i].Node)
+            if (group.Members.Count == 0)
+            {
                 continue;
+            }
 
-            needsReordering = true;
-            var lineSpan = typeDeclaration.SyntaxTree.GetLineSpan(members[i].Node.Span);
-            var memberName = GetMemberName(members[i].Node);
+            // Get member order info for this group
+            var memberInfos = group
+                .Members.Select(GetMemberOrderInfo)
+                .Where(m => m != null)
+                .Cast<MemberOrderInfo>()
+                .ToList();
 
-            violations.Add(
-                new Sa1201Violation(
-                    lineSpan.StartLinePosition.Line + 1,
-                    lineSpan.StartLinePosition.Character + 1,
-                    $"{GetMemberTypeString(members[i])} '{memberName}' reordered by access level.",
-                    memberName
-                )
-            );
+            if (memberInfos.Count == 0)
+            {
+                // No reorderable members in this group, keep as-is
+                reorderedMembers.AddRange(group.Members);
+                continue;
+            }
+
+            var sortedMembers = OrderMembers(memberInfos);
+
+            // Check if this group needs reordering
+            var groupNeedsReordering = false;
+            for (var i = 0; i < memberInfos.Count; i++)
+            {
+                if (memberInfos[i].Node == sortedMembers[i].Node)
+                    continue;
+
+                groupNeedsReordering = true;
+                needsReordering = true;
+                var lineSpan = typeDeclaration.SyntaxTree.GetLineSpan(memberInfos[i].Node.Span);
+                var memberName = GetMemberName(memberInfos[i].Node);
+
+                violations.Add(
+                    new Sa1201Violation(
+                        lineSpan.StartLinePosition.Line + 1,
+                        lineSpan.StartLinePosition.Character + 1,
+                        $"{GetMemberTypeString(memberInfos[i])} '{memberName}' reordered by access level.",
+                        memberName
+                    )
+                );
+            }
+
+            // Add members from this group (reordered if needed, or original order if not)
+            if (groupNeedsReordering)
+            {
+                // Just add the reordered members - each member already has its own trivia
+                // (comments, attributes, etc.) attached to it
+                for (var i = 0; i < sortedMembers.Count; i++)
+                {
+                    var member = (MemberDeclarationSyntax)sortedMembers[i].Node;
+                    reorderedMembers.Add(member);
+                }
+            }
+            else
+            {
+                // No reordering needed, keep original order
+                reorderedMembers.AddRange(group.Members);
+            }
         }
 
         if (!needsReordering)
@@ -334,12 +404,170 @@ public class Sa1201IerFormatter
             return typeDeclaration;
         }
 
-        var newMembers = sortedMembers.Select(m => (MemberDeclarationSyntax)m.Node).ToList();
         var newTypeDeclaration = typeDeclaration.WithMembers(
-            new SyntaxList<MemberDeclarationSyntax>(newMembers)
+            new SyntaxList<MemberDeclarationSyntax>(reorderedMembers)
         );
 
         return newTypeDeclaration;
+    }
+
+    /// <summary>
+    /// Groups members by their preprocessor directive and region context.
+    /// Members within the same #if/#endif or #region/#endregion block are kept together.
+    /// </summary>
+    /// <param name="allMembers">All member declarations from the type.</param>
+    /// <returns>Groups of members that should be reordered together.</returns>
+    private static List<MemberGroup> GroupMembersByDirectives(
+        List<MemberDeclarationSyntax> allMembers
+    )
+    {
+        if (allMembers.Count == 0)
+        {
+            return new List<MemberGroup>();
+        }
+
+        // Check if any members have preprocessor or region directives
+        var hasAnyDirectives = allMembers.Any(member =>
+            member
+                .GetLeadingTrivia()
+                .Any(t =>
+                    t.IsKind(SyntaxKind.IfDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.EndIfDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.RegionDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.EndRegionDirectiveTrivia)
+                )
+            || member
+                .GetTrailingTrivia()
+                .Any(t =>
+                    t.IsKind(SyntaxKind.IfDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.EndIfDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.RegionDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.EndRegionDirectiveTrivia)
+                )
+        );
+
+        // If no directives, treat all members as one group
+        if (!hasAnyDirectives)
+        {
+            return new List<MemberGroup> { new MemberGroup { Members = allMembers } };
+        }
+
+        var groups = new List<MemberGroup>();
+        var currentGroup = new MemberGroup();
+
+        // Track the nesting level of preprocessor directives and regions
+        var directiveDepth = 0;
+        var regionDepth = 0;
+
+        foreach (var member in allMembers)
+        {
+            var leadingTrivia = member.GetLeadingTrivia();
+
+            // Process leading trivia to see if we're entering/leaving blocks
+            var leadingHasOpening = leadingTrivia.Any(t =>
+                t.IsKind(SyntaxKind.IfDirectiveTrivia) || t.IsKind(SyntaxKind.RegionDirectiveTrivia)
+            );
+            var leadingHasClosing = leadingTrivia.Any(t =>
+                t.IsKind(SyntaxKind.EndIfDirectiveTrivia)
+                || t.IsKind(SyntaxKind.EndRegionDirectiveTrivia)
+            );
+
+            // Count directives in leading trivia
+            foreach (var trivia in leadingTrivia)
+            {
+                // Process closing directives first
+                if (trivia.IsKind(SyntaxKind.EndIfDirectiveTrivia))
+                {
+                    directiveDepth = Math.Max(0, directiveDepth - 1);
+                }
+                else if (trivia.IsKind(SyntaxKind.EndRegionDirectiveTrivia))
+                {
+                    regionDepth = Math.Max(0, regionDepth - 1);
+                }
+            }
+
+            // If we just closed a block and have accumulated members, finalize the group
+            var wasInBlock = directiveDepth > 0 || regionDepth > 0;
+            if (leadingHasClosing && !wasInBlock && currentGroup.Members.Count > 0)
+            {
+                groups.Add(currentGroup);
+                currentGroup = new MemberGroup();
+            }
+
+            // Now process opening directives
+            foreach (var trivia in leadingTrivia)
+            {
+                if (trivia.IsKind(SyntaxKind.IfDirectiveTrivia))
+                {
+                    // If we're starting a new block and have members outside, finalize that group
+                    if (directiveDepth == 0 && regionDepth == 0 && currentGroup.Members.Count > 0)
+                    {
+                        groups.Add(currentGroup);
+                        currentGroup = new MemberGroup();
+                    }
+                    directiveDepth++;
+                }
+                else if (trivia.IsKind(SyntaxKind.RegionDirectiveTrivia))
+                {
+                    // If we're starting a new region and have members outside, finalize that group
+                    if (directiveDepth == 0 && regionDepth == 0 && currentGroup.Members.Count > 0)
+                    {
+                        groups.Add(currentGroup);
+                        currentGroup = new MemberGroup();
+                    }
+                    regionDepth++;
+                }
+            }
+
+            // Add member to current group
+            currentGroup.Members.Add(member);
+
+            // Check trailing trivia
+            var trailingTrivia = member.GetTrailingTrivia();
+            foreach (var trivia in trailingTrivia)
+            {
+                if (trivia.IsKind(SyntaxKind.EndIfDirectiveTrivia))
+                {
+                    directiveDepth = Math.Max(0, directiveDepth - 1);
+                }
+                else if (trivia.IsKind(SyntaxKind.EndRegionDirectiveTrivia))
+                {
+                    regionDepth = Math.Max(0, regionDepth - 1);
+                }
+            }
+
+            // If we're now outside all blocks after adding this member, close the group
+            if (
+                (directiveDepth == 0 && regionDepth == 0)
+                && (
+                    trailingTrivia.Any(t =>
+                        t.IsKind(SyntaxKind.EndIfDirectiveTrivia)
+                        || t.IsKind(SyntaxKind.EndRegionDirectiveTrivia)
+                    )
+                )
+            )
+            {
+                groups.Add(currentGroup);
+                currentGroup = new MemberGroup();
+            }
+        }
+
+        // Add any remaining members in the current group
+        if (currentGroup.Members.Count > 0)
+        {
+            groups.Add(currentGroup);
+        }
+
+        return groups;
+    }
+
+    /// <summary>
+    /// Represents a group of members that should be reordered together.
+    /// </summary>
+    private class MemberGroup
+    {
+        public List<MemberDeclarationSyntax> Members { get; set; } =
+            new List<MemberDeclarationSyntax>();
     }
 
     /// <summary>
