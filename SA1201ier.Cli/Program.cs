@@ -13,11 +13,17 @@ internal class Program
     /// <param name="path">The file or directory path.</param>
     /// <param name="check">Whether to only check without formatting.</param>
     /// <param name="verbose">Whether to show verbose output.</param>
-    private static async Task ExecuteAsync(string path, bool check, bool verbose)
+    /// <param name="cliOptions">CLI-specified options that override config files.</param>
+    private static async Task ExecuteAsync(
+        string path,
+        bool check,
+        bool verbose,
+        FormatterOptions? cliOptions
+    )
     {
         try
         {
-            var processor = new FileProcessor();
+            var processor = new FileProcessor(cliOptions);
             var results = await processor.ProcessAsync(path, check, writeChanges: !check);
 
             var filesWithViolations = results.Where(r => r.Violations.Count > 0).ToList();
@@ -114,8 +120,32 @@ internal class Program
             return 0;
         }
 
+        // Handle init-config command
+        if (args.Contains("--init-config"))
+        {
+            var initPath =
+                args.FirstOrDefault(a => !a.StartsWith('-')) ?? Directory.GetCurrentDirectory();
+            var directory = File.Exists(initPath)
+                ? Path.GetDirectoryName(initPath) ?? "."
+                : initPath;
+
+            try
+            {
+                ConfigurationLoader.CreateSampleConfig(directory);
+                Console.WriteLine($"✓ Created .sa1201ierrc in {directory}");
+                return 0;
+            }
+            catch (InvalidOperationException ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                return 1;
+            }
+        }
+
         var check = args.Contains("--check") || args.Contains("-c");
         var verbose = args.Contains("--verbose") || args.Contains("-v");
+        var alphabeticalSort = args.Contains("--alphabetical-sort");
+        var sortTopLevelTypes = args.Contains("--sort-top-level-types");
         var path = args.FirstOrDefault(a => !a.StartsWith('-'));
 
         if (string.IsNullOrWhiteSpace(path))
@@ -126,7 +156,18 @@ internal class Program
             return 1;
         }
 
-        await ExecuteAsync(path, check, verbose);
+        // Build CLI options if any were specified
+        FormatterOptions? cliOptions = null;
+        if (alphabeticalSort || sortTopLevelTypes)
+        {
+            cliOptions = new FormatterOptions
+            {
+                AlphabeticalSort = alphabeticalSort,
+                SortTopLevelTypes = sortTopLevelTypes,
+            };
+        }
+
+        await ExecuteAsync(path, check, verbose, cliOptions);
         return 0;
     }
 
@@ -135,19 +176,45 @@ internal class Program
     /// </summary>
     private static void ShowHelp()
     {
-        Console.WriteLine("SA1201ier - Format C# files according to StyleCop rule SA1201");
+        Console.WriteLine(
+            "SA1201ier - Format C# and Razor files according to StyleCop rule SA1201"
+        );
         Console.WriteLine();
         Console.WriteLine("Usage:");
         Console.WriteLine("  SA1201ier <path> [options]");
         Console.WriteLine();
         Console.WriteLine("Arguments:");
-        Console.WriteLine("  <path>    The file or directory path to format or check");
+        Console.WriteLine(
+            "  <path>    The file or directory path to format or check (.cs and .razor files)"
+        );
         Console.WriteLine();
         Console.WriteLine("Options:");
         Console.WriteLine(
-            "  -c, --check      Check for formatting violations without making changes"
+            "  -c, --check                  Check for formatting violations without making changes"
         );
-        Console.WriteLine("  -v, --verbose    Show detailed output");
-        Console.WriteLine("  -h, --help       Show this help message");
+        Console.WriteLine("  -v, --verbose                Show detailed output");
+        Console.WriteLine(
+            "  --alphabetical-sort          Sort members alphabetically within same access level"
+        );
+        Console.WriteLine("  --sort-top-level-types       Sort top-level types by access level");
+        Console.WriteLine(
+            "  --init-config                Create a sample .sa1201ierrc config file"
+        );
+        Console.WriteLine("  -h, --help                   Show this help message");
+        Console.WriteLine();
+        Console.WriteLine("Configuration:");
+        Console.WriteLine(
+            "  SA1201ier looks for .sa1201ierrc files in the current directory and parent"
+        );
+        Console.WriteLine(
+            "  directories. Options are merged hierarchically with child directories"
+        );
+        Console.WriteLine("  overriding parent settings. CLI options override all config files.");
+        Console.WriteLine();
+        Console.WriteLine("  Example .sa1201ierrc:");
+        Console.WriteLine("  {");
+        Console.WriteLine("    \"alphabeticalSort\": true,");
+        Console.WriteLine("    \"sortTopLevelTypes\": false");
+        Console.WriteLine("  }");
     }
 }

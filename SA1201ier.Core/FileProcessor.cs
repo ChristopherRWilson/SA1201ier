@@ -1,18 +1,21 @@
 namespace SA1201ier.Core;
 
 /// <summary>
-/// Processes C# files and directories for SA1201 formatting.
+/// Processes C# and Razor files and directories for SA1201 formatting.
 /// </summary>
 public class FileProcessor
 {
-    private readonly Sa1201IerFormatter _formatter;
+    private readonly ConfigurationLoader _configLoader;
+    private readonly FormatterOptions? _cliOptions;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileProcessor" /> class.
     /// </summary>
-    public FileProcessor()
+    /// <param name="cliOptions">Optional formatter options from CLI that override config files.</param>
+    public FileProcessor(FormatterOptions? cliOptions = null)
     {
-        _formatter = new Sa1201IerFormatter();
+        _configLoader = new ConfigurationLoader();
+        _cliOptions = cliOptions;
     }
 
     /// <summary>
@@ -44,7 +47,7 @@ public class FileProcessor
     }
 
     /// <summary>
-    /// Processes all C# files in a directory recursively.
+    /// Processes all C# and Razor files in a directory recursively.
     /// </summary>
     /// <param name="directoryPath">The directory path.</param>
     /// <param name="check">If true, only checks for violations without formatting.</param>
@@ -57,9 +60,11 @@ public class FileProcessor
     )
     {
         var csFiles = Directory.GetFiles(directoryPath, "*.cs", SearchOption.AllDirectories);
+        var razorFiles = Directory.GetFiles(directoryPath, "*.razor", SearchOption.AllDirectories);
+        var allFiles = csFiles.Concat(razorFiles);
         var results = new List<FormattingResult>();
 
-        foreach (var file in csFiles)
+        foreach (var file in allFiles)
         {
             try
             {
@@ -88,20 +93,40 @@ public class FileProcessor
         bool writeChanges
     )
     {
-        if (!filePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+        var isRazorFile = RazorFileProcessor.IsRazorFile(filePath);
+        var isCsFile = filePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
+
+        if (!isCsFile && !isRazorFile)
         {
-            throw new ArgumentException("Only C# files (.cs) are supported.", nameof(filePath));
+            throw new ArgumentException(
+                "Only C# files (.cs) and Razor files (.razor) are supported.",
+                nameof(filePath)
+            );
         }
+
+        if (isRazorFile)
+        {
+            return await ProcessRazorFileAsync(filePath, check, writeChanges);
+        }
+
+        // Load configuration for this file (hierarchical merge from config files)
+        var fileOptions = _configLoader.LoadConfiguration(filePath);
+
+        // CLI options override file-based config
+        var effectiveOptions =
+            _cliOptions != null ? fileOptions.MergeWith(_cliOptions) : fileOptions;
+
+        var formatter = new Sa1201IerFormatter(effectiveOptions);
 
         FormattingResult result;
 
         if (check)
         {
-            result = await _formatter.CheckFileAsync(filePath);
+            result = await formatter.CheckFileAsync(filePath);
         }
         else
         {
-            result = await _formatter.FormatFileAsync(filePath);
+            result = await formatter.FormatFileAsync(filePath);
 
             if (writeChanges && result.HasChanges && result.FormattedContent != null)
             {
@@ -110,5 +135,96 @@ public class FileProcessor
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Processes a Razor file by extracting and formatting C# code blocks.
+    /// </summary>
+    /// <param name="filePath">The Razor file path.</param>
+    /// <param name="check">If true, only checks for violations without formatting.</param>
+    /// <param name="writeChanges">If true, writes changes to disk.</param>
+    /// <returns>The formatting result.</returns>
+    private async Task<FormattingResult> ProcessRazorFileAsync(
+        string filePath,
+        bool check,
+        bool writeChanges
+    )
+    {
+        var razorContent = await File.ReadAllTextAsync(filePath);
+
+        // Extract C# code blocks
+        var extraction = RazorFileProcessor.ExtractCodeBlocks(razorContent);
+
+        if (extraction.CodeBlocks.Count == 0)
+        {
+            // No @code blocks found, return empty result
+            return new FormattingResult(filePath, razorContent, null, new List<Sa1201Violation>());
+        }
+
+        // Load configuration for this file
+        var fileOptions = _configLoader.LoadConfiguration(filePath);
+        var effectiveOptions =
+            _cliOptions != null ? fileOptions.MergeWith(_cliOptions) : fileOptions;
+
+        var formatter = new Sa1201IerFormatter(effectiveOptions);
+        var allViolations = new List<Sa1201Violation>();
+        var hasChanges = false;
+
+        // Process each code block
+        foreach (var block in extraction.CodeBlocks)
+        {
+            // Wrap the code in a class for parsing
+            var wrappedCode = RazorFileProcessor.WrapCodeForParsing(block.OriginalCode);
+
+            FormattingResult blockResult;
+
+            if (check)
+            {
+                blockResult = Sa1201IerFormatter.CheckContent(
+                    filePath,
+                    wrappedCode,
+                    effectiveOptions
+                );
+            }
+            else
+            {
+                blockResult = formatter.FormatContent(filePath, wrappedCode);
+            }
+
+            // Add violations from this block
+            allViolations.AddRange(blockResult.Violations);
+
+            if (!check && blockResult.HasChanges && blockResult.FormattedContent != null)
+            {
+                // Unwrap the formatted code
+                var formattedCode = RazorFileProcessor.UnwrapFormattedCode(
+                    blockResult.FormattedContent
+                );
+                block.FormattedCode = formattedCode;
+                hasChanges = true;
+            }
+            else
+            {
+                block.FormattedCode = block.OriginalCode;
+            }
+        }
+
+        string? finalContent = null;
+
+        if (!check && hasChanges)
+        {
+            // Reinsert formatted code blocks
+            finalContent = RazorFileProcessor.ReinsertCodeBlocks(
+                extraction.Template,
+                extraction.CodeBlocks
+            );
+
+            if (writeChanges)
+            {
+                await File.WriteAllTextAsync(filePath, finalContent);
+            }
+        }
+
+        return new FormattingResult(filePath, razorContent, finalContent, allViolations);
     }
 }

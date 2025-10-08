@@ -1,0 +1,67 @@
+{
+  // SA1201ier Configuration File
+  // Place this file (named .sa1201ierrc) in any directory to configure
+  // formatting options for that directory and its subdirectories.
+  //
+  // Multiple .sa1201ierrc files can exist in different directories,
+  // and they will be merged hierarchically (child overrides parent).
+  //
+  // CLI options override all config file settings.
+
+  // Sort members alphabetically within the same access level and member type
+  // Default: false
+  "alphabeticalSort": false,
+
+  // Sort top-level types (classes, records, interfaces) by access level
+  // Default: false
+  "sortTopLevelTypes": false,
+
+  // Whether static members should come before instance members
+  // Default: true
+  "staticMembersFirst": true,
+
+  // Whether const members should come before non-const members
+  // Default: true
+  "constMembersFirst": true,
+
+  // Custom order for access levels
+  // Valid values: "Public", "Internal", "ProtectedInternal", "Protected", "PrivateProtected", "Private"
+  // Default order (if not specified):
+  "accessLevelOrder": [
+    "Public",
+    "Internal",
+    "ProtectedInternal",
+    "Protected",
+    "PrivateProtected",
+    "Private"
+  ],
+
+  // Custom order for member types within a class
+  // Valid values: "Field", "Constructor", "Destructor", "Delegate", "Event", 
+  //               "Enum", "Interface", "Property", "Indexer", "Method", "Struct", "Class"
+  // Default order (if not specified):
+  "memberTypeOrder": [
+    "Field",
+    "Constructor",
+    "Destructor",
+    "Delegate",
+    "Event",
+    "Enum",
+    "Interface",
+    "Property",
+    "Indexer",
+    "Method",
+    "Struct",
+    "Class"
+  ],
+
+  // Custom order for top-level types (when sortTopLevelTypes is true)
+  // Valid values: "Enum", "Interface", "Struct", "Class"
+  // Default order (if not specified):
+  "topLevelTypeOrder": [
+    "Enum",
+    "Interface",
+    "Struct",
+    "Class"
+  ]
+}

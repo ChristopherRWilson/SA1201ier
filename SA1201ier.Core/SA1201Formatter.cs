@@ -10,13 +10,38 @@ namespace SA1201ier.Core;
 /// </summary>
 public class Sa1201IerFormatter
 {
+    private readonly FormatterOptions _options;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Sa1201IerFormatter"/> class.
+    /// </summary>
+    /// <param name="options">Formatting options.</param>
+    public Sa1201IerFormatter(FormatterOptions? options = null)
+    {
+        _options = options ?? FormatterOptions.Default;
+    }
+
     /// <summary>
     /// Checks content for SA1201 violations without modifying it.
     /// </summary>
     /// <param name="filePath">The file path (for reporting purposes).</param>
     /// <param name="content">The content to check.</param>
+    /// <param name="options">Optional formatting options.</param>
     /// <returns>A <see cref="FormattingResult" /> containing violation information.</returns>
-    public static FormattingResult CheckContent(string filePath, string content)
+    public static FormattingResult CheckContent(
+        string filePath,
+        string content,
+        FormatterOptions? options = null
+    )
+    {
+        var formatter = new Sa1201IerFormatter(options);
+        return formatter.CheckContentInternal(filePath, content);
+    }
+
+    /// <summary>
+    /// Checks content for SA1201 violations without modifying it (instance method).
+    /// </summary>
+    private FormattingResult CheckContentInternal(string filePath, string content)
     {
         var tree = CSharpSyntaxTree.ParseText(content);
 
@@ -36,8 +61,14 @@ public class Sa1201IerFormatter
     /// </summary>
     /// <param name="node">The node to analyze.</param>
     /// <param name="violations">The list to add violations to.</param>
-    private static void AnalyzeNode(SyntaxNode node, List<Sa1201Violation> violations)
+    private void AnalyzeNode(SyntaxNode node, List<Sa1201Violation> violations)
     {
+        // Analyze namespace declarations for top-level type ordering
+        if (node is BaseNamespaceDeclarationSyntax namespaceDecl && _options.SortTopLevelTypes)
+        {
+            AnalyzeNamespaceDeclaration(namespaceDecl, violations);
+        }
+
         if (node is TypeDeclarationSyntax typeDeclaration)
         {
             AnalyzeTypeDeclaration(typeDeclaration, violations);
@@ -50,12 +81,69 @@ public class Sa1201IerFormatter
     }
 
     /// <summary>
+    /// Analyzes a namespace declaration for top-level type ordering violations.
+    /// </summary>
+    /// <param name="namespaceDecl">The namespace declaration to analyze.</param>
+    /// <param name="violations">The list to add violations to.</param>
+    private void AnalyzeNamespaceDeclaration(
+        BaseNamespaceDeclarationSyntax namespaceDecl,
+        List<Sa1201Violation> violations
+    )
+    {
+        // Get all type declarations in the namespace
+        var typeMembers = namespaceDecl.Members.OfType<BaseTypeDeclarationSyntax>().ToList();
+
+        if (typeMembers.Count <= 1)
+        {
+            return;
+        }
+
+        // Create order info for types
+        var typeOrderInfos = typeMembers
+            .Select(type => new
+            {
+                Type = type,
+                AccessLevel = GetAccessLevel(type),
+                Name = type.Identifier.Text,
+                MemberType = GetTopLevelTypeOrder(type),
+            })
+            .ToList();
+
+        // Sort by type order, access level, then optionally by name
+        var sortedTypes = _options.AlphabeticalSort
+            ? typeOrderInfos
+                .OrderBy(t => t.MemberType)
+                .ThenBy(t => t.AccessLevel)
+                .ThenBy(t => t.Name)
+                .ToList()
+            : typeOrderInfos.OrderBy(t => t.MemberType).ThenBy(t => t.AccessLevel).ToList();
+
+        // Check if reordering is needed
+        for (var i = 0; i < typeOrderInfos.Count; i++)
+        {
+            if (typeOrderInfos[i].Type != sortedTypes[i].Type)
+            {
+                var lineSpan = namespaceDecl.SyntaxTree.GetLineSpan(typeOrderInfos[i].Type.Span);
+                violations.Add(
+                    new Sa1201Violation(
+                        lineSpan.StartLinePosition.Line + 1,
+                        lineSpan.StartLinePosition.Character + 1,
+                        $"Type '{typeOrderInfos[i].Name}' should be ordered by access level.",
+                        typeOrderInfos[i].Name
+                    )
+                );
+                break; // Only report the first violation
+            }
+        }
+    }
+
+    /// <summary>
     /// Analyzes a type declaration for SA1201 violations while respecting
     /// preprocessor directives and region boundaries.
     /// </summary>
     /// <param name="typeDeclaration">The type declaration to analyze.</param>
     /// <param name="violations">The list to add violations to.</param>
-    private static void AnalyzeTypeDeclaration(
+    private void AnalyzeTypeDeclaration(
         TypeDeclarationSyntax typeDeclaration,
         List<Sa1201Violation> violations
     )
@@ -301,14 +389,73 @@ public class Sa1201IerFormatter
     /// </summary>
     /// <param name="members">The members to order.</param>
     /// <returns>The ordered members.</returns>
-    private static List<MemberOrderInfo> OrderMembers(List<MemberOrderInfo> members)
+    private List<MemberOrderInfo> OrderMembers(List<MemberOrderInfo> members)
     {
-        return members
-            .OrderBy(m => m.MemberType)
-            .ThenBy(m => m.IsConst ? 0 : 1)
-            .ThenBy(m => m.IsStatic ? 0 : 1)
-            .ThenBy(m => m.AccessLevel)
+        // Build custom sort keys
+        var membersWithSortKeys = members
+            .Select(m => new
+            {
+                Member = m,
+                MemberTypeOrder = GetMemberTypeSortKey(m.MemberType),
+                AccessLevelOrder = GetAccessLevelSortKey(m.AccessLevel),
+                ConstOrder = _options.ConstMembersFirst ? (m.IsConst ? 0 : 1) : (m.IsConst ? 1 : 0),
+                StaticOrder = _options.StaticMembersFirst
+                    ? (m.IsStatic ? 0 : 1)
+                    : (m.IsStatic ? 1 : 0),
+                Name = GetMemberName(m.Node),
+            })
             .ToList();
+
+        // Sort using custom orders
+        var sorted = membersWithSortKeys
+            .OrderBy(m => m.MemberTypeOrder)
+            .ThenBy(m => m.ConstOrder)
+            .ThenBy(m => m.StaticOrder)
+            .ThenBy(m => m.AccessLevelOrder);
+
+        // Add alphabetical sorting as the final sort key if enabled
+        if (_options.AlphabeticalSort)
+        {
+            sorted = sorted.ThenBy(m => m.Name);
+        }
+
+        return sorted.Select(m => m.Member).ToList();
+    }
+
+    /// <summary>
+    /// Gets the sort key for a member type based on custom configuration.
+    /// </summary>
+    /// <param name="memberType">The member type.</param>
+    /// <returns>The sort key (lower values come first).</returns>
+    private int GetMemberTypeSortKey(MemberType memberType)
+    {
+        if (_options.MemberTypeOrder == null || _options.MemberTypeOrder.Count == 0)
+        {
+            // Default order
+            return (int)memberType;
+        }
+
+        var memberTypeName = memberType.ToString();
+        var index = _options.MemberTypeOrder.IndexOf(memberTypeName);
+        return index >= 0 ? index : 999; // Put unspecified types at the end
+    }
+
+    /// <summary>
+    /// Gets the sort key for an access level based on custom configuration.
+    /// </summary>
+    /// <param name="accessLevel">The access level.</param>
+    /// <returns>The sort key (lower values come first).</returns>
+    private int GetAccessLevelSortKey(AccessLevel accessLevel)
+    {
+        if (_options.AccessLevelOrder == null || _options.AccessLevelOrder.Count == 0)
+        {
+            // Default order
+            return (int)accessLevel;
+        }
+
+        var accessLevelName = accessLevel.ToString();
+        var index = _options.AccessLevelOrder.IndexOf(accessLevelName);
+        return index >= 0 ? index : 999; // Put unspecified levels at the end
     }
 
     /// <summary>
@@ -318,7 +465,7 @@ public class Sa1201IerFormatter
     /// <param name="typeDeclaration">The type declaration to reorder.</param>
     /// <param name="violations">The list to add violations to.</param>
     /// <returns>The reordered type declaration.</returns>
-    private static TypeDeclarationSyntax ReorderTypeDeclaration(
+    private TypeDeclarationSyntax ReorderTypeDeclaration(
         TypeDeclarationSyntax typeDeclaration,
         List<Sa1201Violation> violations
     )
@@ -633,6 +780,12 @@ public class Sa1201IerFormatter
     /// <returns>The reordered node.</returns>
     private SyntaxNode ReorderNode(SyntaxNode node, List<Sa1201Violation> violations)
     {
+        // Handle namespace declarations (both traditional and file-scoped)
+        if (node is BaseNamespaceDeclarationSyntax namespaceDecl && _options.SortTopLevelTypes)
+        {
+            return ReorderNamespaceDeclaration(namespaceDecl, violations);
+        }
+
         if (node is TypeDeclarationSyntax typeDeclaration)
         {
             var reordered = ReorderTypeDeclaration(typeDeclaration, violations);
@@ -648,5 +801,191 @@ public class Sa1201IerFormatter
                 return index >= 0 && index < children.Length ? children[index] : oldNode;
             }
         );
+    }
+
+    /// <summary>
+    /// Reorders types within a namespace declaration.
+    /// </summary>
+    /// <param name="namespaceDecl">The namespace declaration.</param>
+    /// <param name="violations">The list to add violations to.</param>
+    /// <returns>The reordered namespace declaration.</returns>
+    private BaseNamespaceDeclarationSyntax ReorderNamespaceDeclaration(
+        BaseNamespaceDeclarationSyntax namespaceDecl,
+        List<Sa1201Violation> violations
+    )
+    {
+        // Get all type declarations in the namespace
+        var typeMembers = namespaceDecl.Members.OfType<BaseTypeDeclarationSyntax>().ToList();
+
+        if (typeMembers.Count <= 1)
+        {
+            // No reordering needed, but still process children
+            var children = namespaceDecl
+                .ChildNodes()
+                .Select(child => ReorderNode(child, violations))
+                .ToArray();
+            return (BaseNamespaceDeclarationSyntax)
+                namespaceDecl.ReplaceNodes(
+                    namespaceDecl.ChildNodes(),
+                    (oldNode, _) =>
+                    {
+                        var index = Array.IndexOf(namespaceDecl.ChildNodes().ToArray(), oldNode);
+                        return index >= 0 && index < children.Length ? children[index] : oldNode;
+                    }
+                );
+        }
+
+        // Create order info for types
+        var typeOrderInfos = typeMembers
+            .Select(type => new
+            {
+                Type = type,
+                AccessLevel = GetAccessLevel(type),
+                Name = type.Identifier.Text,
+                MemberType = GetTopLevelTypeOrder(type),
+            })
+            .ToList();
+
+        // Sort by type order, access level, then optionally by name
+        var sortedTypes = _options.AlphabeticalSort
+            ? typeOrderInfos
+                .OrderBy(t => t.MemberType)
+                .ThenBy(t => t.AccessLevel)
+                .ThenBy(t => t.Name)
+                .ToList()
+            : typeOrderInfos.OrderBy(t => t.MemberType).ThenBy(t => t.AccessLevel).ToList();
+
+        // Check if reordering is needed
+        var needsReordering = false;
+        for (var i = 0; i < typeOrderInfos.Count; i++)
+        {
+            if (typeOrderInfos[i].Type != sortedTypes[i].Type)
+            {
+                needsReordering = true;
+                var lineSpan = namespaceDecl.SyntaxTree.GetLineSpan(typeOrderInfos[i].Type.Span);
+                violations.Add(
+                    new Sa1201Violation(
+                        lineSpan.StartLinePosition.Line + 1,
+                        lineSpan.StartLinePosition.Character + 1,
+                        $"Type '{typeOrderInfos[i].Name}' reordered by access level.",
+                        typeOrderInfos[i].Name
+                    )
+                );
+            }
+        }
+
+        if (!needsReordering)
+        {
+            // Still need to process children
+            var children = namespaceDecl
+                .ChildNodes()
+                .Select(child => ReorderNode(child, violations))
+                .ToArray();
+            return (BaseNamespaceDeclarationSyntax)
+                namespaceDecl.ReplaceNodes(
+                    namespaceDecl.ChildNodes(),
+                    (oldNode, _) =>
+                    {
+                        var index = Array.IndexOf(namespaceDecl.ChildNodes().ToArray(), oldNode);
+                        return index >= 0 && index < children.Length ? children[index] : oldNode;
+                    }
+                );
+        }
+
+        // Reorder the types
+        var newMembers = new List<MemberDeclarationSyntax>();
+
+        // First add all non-type members in original order
+        foreach (var member in namespaceDecl.Members)
+        {
+            if (member is not BaseTypeDeclarationSyntax)
+            {
+                newMembers.Add(member);
+            }
+        }
+
+        // Then add sorted types (after recursively processing them)
+        foreach (var sortedType in sortedTypes)
+        {
+            var reorderedType = ReorderNode(sortedType.Type, violations);
+            newMembers.Add((MemberDeclarationSyntax)reorderedType);
+        }
+
+        return namespaceDecl.WithMembers(new SyntaxList<MemberDeclarationSyntax>(newMembers));
+    }
+
+    /// <summary>
+    /// Gets the sort order for top-level types based on custom configuration.
+    /// </summary>
+    private int GetTopLevelTypeOrder(BaseTypeDeclarationSyntax type)
+    {
+        if (_options.TopLevelTypeOrder == null || _options.TopLevelTypeOrder.Count == 0)
+        {
+            // Default order
+            return type switch
+            {
+                EnumDeclarationSyntax => 0,
+                InterfaceDeclarationSyntax => 1,
+                StructDeclarationSyntax => 2,
+                ClassDeclarationSyntax => 3,
+                RecordDeclarationSyntax => 3, // Same as class
+                _ => 4,
+            };
+        }
+
+        // Use custom order
+        var typeName = type switch
+        {
+            EnumDeclarationSyntax => "Enum",
+            InterfaceDeclarationSyntax => "Interface",
+            StructDeclarationSyntax => "Struct",
+            ClassDeclarationSyntax => "Class",
+            RecordDeclarationSyntax => "Class", // Records are treated as classes
+            _ => null,
+        };
+
+        if (typeName == null)
+        {
+            return 999; // Unknown types at the end
+        }
+
+        var index = _options.TopLevelTypeOrder.IndexOf(typeName);
+        return index >= 0 ? index : 999;
+    }
+
+    /// <summary>
+    /// Gets the access level from a base type declaration.
+    /// </summary>
+    private static AccessLevel GetAccessLevel(BaseTypeDeclarationSyntax type)
+    {
+        var modifiers = type.Modifiers;
+
+        if (modifiers.Any(SyntaxKind.PublicKeyword))
+        {
+            return AccessLevel.Public;
+        }
+
+        if (modifiers.Any(SyntaxKind.PrivateKeyword) && modifiers.Any(SyntaxKind.ProtectedKeyword))
+        {
+            return AccessLevel.PrivateProtected;
+        }
+
+        if (modifiers.Any(SyntaxKind.ProtectedKeyword) && modifiers.Any(SyntaxKind.InternalKeyword))
+        {
+            return AccessLevel.ProtectedInternal;
+        }
+
+        if (modifiers.Any(SyntaxKind.ProtectedKeyword))
+        {
+            return AccessLevel.Protected;
+        }
+
+        if (modifiers.Any(SyntaxKind.PrivateKeyword))
+        {
+            return AccessLevel.Private;
+        }
+
+        // Default is internal for top-level types
+        return AccessLevel.Internal;
     }
 }
