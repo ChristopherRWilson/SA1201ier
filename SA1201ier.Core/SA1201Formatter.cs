@@ -478,6 +478,8 @@ public class Sa1201IerFormatter
             var wasInBlock = directiveDepth > 0 || regionDepth > 0;
             directiveDepth -= endIfDirectives;
             regionDepth -= endRegionDirectives;
+            directiveDepth = Math.Max(0, directiveDepth);
+            regionDepth = Math.Max(0, regionDepth);
             var nowInBlock = directiveDepth > 0 || regionDepth > 0;
 
             // If we're leaving a block, close current group
