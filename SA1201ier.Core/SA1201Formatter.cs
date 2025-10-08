@@ -384,20 +384,11 @@ public class Sa1201IerFormatter
             // Add members from this group (reordered if needed, or original order if not)
             if (groupNeedsReordering)
             {
-                // Preserve the leading trivia of the first member in the group
-                var firstOriginalMember = group.Members[0];
-                var leadingTrivia = firstOriginalMember.GetLeadingTrivia();
-
+                // Just add the reordered members - each member already has its own trivia
+                // (comments, attributes, etc.) attached to it
                 for (var i = 0; i < sortedMembers.Count; i++)
                 {
                     var member = (MemberDeclarationSyntax)sortedMembers[i].Node;
-
-                    // Apply the preserved leading trivia to the first reordered member
-                    if (i == 0)
-                    {
-                        member = member.WithLeadingTrivia(leadingTrivia);
-                    }
-
                     reorderedMembers.Add(member);
                 }
             }
@@ -430,6 +421,37 @@ public class Sa1201IerFormatter
         List<MemberDeclarationSyntax> allMembers
     )
     {
+        if (allMembers.Count == 0)
+        {
+            return new List<MemberGroup>();
+        }
+
+        // Check if any members have preprocessor or region directives
+        var hasAnyDirectives = allMembers.Any(member =>
+            member
+                .GetLeadingTrivia()
+                .Any(t =>
+                    t.IsKind(SyntaxKind.IfDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.EndIfDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.RegionDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.EndRegionDirectiveTrivia)
+                )
+            || member
+                .GetTrailingTrivia()
+                .Any(t =>
+                    t.IsKind(SyntaxKind.IfDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.EndIfDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.RegionDirectiveTrivia)
+                    || t.IsKind(SyntaxKind.EndRegionDirectiveTrivia)
+                )
+        );
+
+        // If no directives, treat all members as one group
+        if (!hasAnyDirectives)
+        {
+            return new List<MemberGroup> { new MemberGroup { Members = allMembers } };
+        }
+
         var groups = new List<MemberGroup>();
         var currentGroup = new MemberGroup();
 
@@ -441,72 +463,93 @@ public class Sa1201IerFormatter
         {
             var leadingTrivia = member.GetLeadingTrivia();
 
-            // Count opening and closing directives in leading trivia
-            var ifDirectives = 0;
-            var endIfDirectives = 0;
-            var regionDirectives = 0;
-            var endRegionDirectives = 0;
+            // Process leading trivia to see if we're entering/leaving blocks
+            var leadingHasOpening = leadingTrivia.Any(t =>
+                t.IsKind(SyntaxKind.IfDirectiveTrivia) || t.IsKind(SyntaxKind.RegionDirectiveTrivia)
+            );
+            var leadingHasClosing = leadingTrivia.Any(t =>
+                t.IsKind(SyntaxKind.EndIfDirectiveTrivia)
+                || t.IsKind(SyntaxKind.EndRegionDirectiveTrivia)
+            );
 
+            // Count directives in leading trivia
+            foreach (var trivia in leadingTrivia)
+            {
+                // Process closing directives first
+                if (trivia.IsKind(SyntaxKind.EndIfDirectiveTrivia))
+                {
+                    directiveDepth = Math.Max(0, directiveDepth - 1);
+                }
+                else if (trivia.IsKind(SyntaxKind.EndRegionDirectiveTrivia))
+                {
+                    regionDepth = Math.Max(0, regionDepth - 1);
+                }
+            }
+
+            // If we just closed a block and have accumulated members, finalize the group
+            var wasInBlock = directiveDepth > 0 || regionDepth > 0;
+            if (leadingHasClosing && !wasInBlock && currentGroup.Members.Count > 0)
+            {
+                groups.Add(currentGroup);
+                currentGroup = new MemberGroup();
+            }
+
+            // Now process opening directives
             foreach (var trivia in leadingTrivia)
             {
                 if (trivia.IsKind(SyntaxKind.IfDirectiveTrivia))
-                    ifDirectives++;
-                else if (trivia.IsKind(SyntaxKind.EndIfDirectiveTrivia))
-                    endIfDirectives++;
+                {
+                    // If we're starting a new block and have members outside, finalize that group
+                    if (directiveDepth == 0 && regionDepth == 0 && currentGroup.Members.Count > 0)
+                    {
+                        groups.Add(currentGroup);
+                        currentGroup = new MemberGroup();
+                    }
+                    directiveDepth++;
+                }
                 else if (trivia.IsKind(SyntaxKind.RegionDirectiveTrivia))
-                    regionDirectives++;
-                else if (trivia.IsKind(SyntaxKind.EndRegionDirectiveTrivia))
-                    endRegionDirectives++;
+                {
+                    // If we're starting a new region and have members outside, finalize that group
+                    if (directiveDepth == 0 && regionDepth == 0 && currentGroup.Members.Count > 0)
+                    {
+                        groups.Add(currentGroup);
+                        currentGroup = new MemberGroup();
+                    }
+                    regionDepth++;
+                }
             }
 
-            // Check trailing trivia too
+            // Add member to current group
+            currentGroup.Members.Add(member);
+
+            // Check trailing trivia
             var trailingTrivia = member.GetTrailingTrivia();
             foreach (var trivia in trailingTrivia)
             {
-                if (trivia.IsKind(SyntaxKind.IfDirectiveTrivia))
-                    ifDirectives++;
-                else if (trivia.IsKind(SyntaxKind.EndIfDirectiveTrivia))
-                    endIfDirectives++;
-                else if (trivia.IsKind(SyntaxKind.RegionDirectiveTrivia))
-                    regionDirectives++;
+                if (trivia.IsKind(SyntaxKind.EndIfDirectiveTrivia))
+                {
+                    directiveDepth = Math.Max(0, directiveDepth - 1);
+                }
                 else if (trivia.IsKind(SyntaxKind.EndRegionDirectiveTrivia))
-                    endRegionDirectives++;
+                {
+                    regionDepth = Math.Max(0, regionDepth - 1);
+                }
             }
 
-            // If we're closing a directive/region block and have members in current group,
-            // finalize this group first
-            var wasInBlock = directiveDepth > 0 || regionDepth > 0;
-            directiveDepth -= endIfDirectives;
-            regionDepth -= endRegionDirectives;
-            directiveDepth = Math.Max(0, directiveDepth);
-            regionDepth = Math.Max(0, regionDepth);
-            var nowInBlock = directiveDepth > 0 || regionDepth > 0;
-
-            // If we're leaving a block, close current group
-            if (wasInBlock && !nowInBlock && currentGroup.Members.Count > 0)
-            {
-                currentGroup.Members.Add(member);
-                groups.Add(currentGroup);
-                currentGroup = new MemberGroup();
-
-                // Update depths after processing opening directives
-                directiveDepth += ifDirectives;
-                regionDepth += regionDirectives;
-                continue;
-            }
-
-            // Update depths for opening directives
-            directiveDepth += ifDirectives;
-            regionDepth += regionDirectives;
-
-            // If we're entering a block, close current group first
-            if (!wasInBlock && nowInBlock && currentGroup.Members.Count > 0)
+            // If we're now outside all blocks after adding this member, close the group
+            if (
+                (directiveDepth == 0 && regionDepth == 0)
+                && (
+                    trailingTrivia.Any(t =>
+                        t.IsKind(SyntaxKind.EndIfDirectiveTrivia)
+                        || t.IsKind(SyntaxKind.EndRegionDirectiveTrivia)
+                    )
+                )
+            )
             {
                 groups.Add(currentGroup);
                 currentGroup = new MemberGroup();
             }
-
-            currentGroup.Members.Add(member);
         }
 
         // Add any remaining members in the current group
@@ -514,8 +557,6 @@ public class Sa1201IerFormatter
         {
             groups.Add(currentGroup);
         }
-
-        // groups will be empty if allMembers is empty, or contain at least one group otherwise
 
         return groups;
     }
