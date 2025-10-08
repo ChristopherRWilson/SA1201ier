@@ -536,17 +536,41 @@ public class Sa1201IerFormatter
                 for (var i = 0; i < sortedMembers.Count; i++)
                 {
                     var member = (MemberDeclarationSyntax)sortedMembers[i].Node;
+
+                    // If insertBlankLineBetweenMembers is enabled, normalize blank lines
+                    if (_options.InsertBlankLineBetweenMembers && i > 0)
+                    {
+                        member = EnsureSingleBlankLineBefore(member);
+                    }
+
                     reorderedMembers.Add(member);
                 }
             }
             else
             {
-                // No reordering needed, keep original order
-                reorderedMembers.AddRange(group.Members);
+                // No reordering needed, but still normalize blank lines if option is enabled
+                if (_options.InsertBlankLineBetweenMembers)
+                {
+                    for (var i = 0; i < group.Members.Count; i++)
+                    {
+                        var member = group.Members[i];
+                        if (i > 0)
+                        {
+                            member = EnsureSingleBlankLineBefore(member);
+                        }
+                        reorderedMembers.Add(member);
+                    }
+                }
+                else
+                {
+                    // Keep original order without modification
+                    reorderedMembers.AddRange(group.Members);
+                }
             }
         }
 
-        if (!needsReordering)
+        var shouldSkipProcessing = !needsReordering && !_options.InsertBlankLineBetweenMembers;
+        if (shouldSkipProcessing)
         {
             return typeDeclaration;
         }
@@ -706,6 +730,86 @@ public class Sa1201IerFormatter
         }
 
         return groups;
+    }
+
+    /// <summary>
+    /// Ensures that a member has exactly one blank line before it by normalizing its leading trivia.
+    /// Preserves comments, attributes, and other important trivia while ensuring proper spacing.
+    /// </summary>
+    /// <param name="member">The member to process.</param>
+    /// <returns>The member with normalized leading trivia.</returns>
+    private static MemberDeclarationSyntax EnsureSingleBlankLineBefore(
+        MemberDeclarationSyntax member
+    )
+    {
+        var leadingTrivia = member.GetLeadingTrivia();
+        var newTrivia = new List<SyntaxTrivia>();
+
+        // Find the newline style used in the original trivia (for consistency)
+        var newlineText = "\r\n"; // Default to CRLF
+        foreach (var trivia in leadingTrivia)
+        {
+            if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+            {
+                newlineText = trivia.ToFullString();
+                break;
+            }
+        }
+
+        // Ensure exactly one blank line before the member.
+        // Assumption: The previous member may or may not end with a newline.
+        // To guarantee one blank line, add a newline if the leading trivia does not already start with one.
+        if (leadingTrivia.Count == 0 || !leadingTrivia[0].IsKind(SyntaxKind.EndOfLineTrivia))
+        {
+            newTrivia.Add(SyntaxFactory.EndOfLine(newlineText));
+        }
+
+        // Collect non-whitespace trivia (comments, attributes, directives) and the final indentation
+        var importantTrivia = new List<SyntaxTrivia>();
+        SyntaxTrivia? finalIndentation = null;
+
+        var foundImportantTrivia = false;
+        for (var i = 0; i < leadingTrivia.Count; i++)
+        {
+            var trivia = leadingTrivia[i];
+
+            if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+            {
+                // Skip newlines at the start, but once we've found important trivia, keep them
+                if (foundImportantTrivia)
+                {
+                    importantTrivia.Add(trivia);
+                }
+                continue;
+            }
+
+            if (trivia.IsKind(SyntaxKind.WhitespaceTrivia))
+            {
+                // Always track the last whitespace as potential indentation
+                finalIndentation = trivia;
+                // If we've found important trivia, preserve whitespace
+                if (foundImportantTrivia)
+                {
+                    importantTrivia.Add(trivia);
+                }
+                continue;
+            }
+
+            // This is important trivia (comments, attributes, directives, etc.)
+            foundImportantTrivia = true;
+            importantTrivia.Add(trivia);
+        }
+
+        // Add any important trivia (comments, attributes, etc.)
+        newTrivia.AddRange(importantTrivia);
+
+        // Add final indentation if we have one
+        if (finalIndentation.HasValue)
+        {
+            newTrivia.Add(finalIndentation.Value);
+        }
+
+        return member.WithLeadingTrivia(newTrivia);
     }
 
     /// <summary>

@@ -51,6 +51,13 @@ public class FormatterOptions
     public bool ConstMembersFirst { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets whether to insert a single blank line between sorted members.
+    /// When enabled, ensures exactly one blank line exists between members.
+    /// Default: false.
+    /// </summary>
+    public bool InsertBlankLineBetweenMembers { get; set; } = false;
+
+    /// <summary>
     /// Creates a new instance with default options.
     /// </summary>
     public static FormatterOptions Default =>
@@ -60,6 +67,7 @@ public class FormatterOptions
             SortTopLevelTypes = false,
             StaticMembersFirst = true,
             ConstMembersFirst = true,
+            InsertBlankLineBetweenMembers = false,
         };
 
     /// <summary>
@@ -74,15 +82,35 @@ public class FormatterOptions
             return this;
         }
 
+        // For boolean properties, only override if the other value is different from the default
+        // This allows option sources to selectively override other settings
+        var defaultOptions = Default;
+
         return new FormatterOptions
         {
-            AlphabeticalSort = other.AlphabeticalSort,
-            SortTopLevelTypes = other.SortTopLevelTypes,
+            AlphabeticalSort =
+                other.AlphabeticalSort != defaultOptions.AlphabeticalSort
+                    ? other.AlphabeticalSort
+                    : AlphabeticalSort,
+            SortTopLevelTypes =
+                other.SortTopLevelTypes != defaultOptions.SortTopLevelTypes
+                    ? other.SortTopLevelTypes
+                    : SortTopLevelTypes,
             AccessLevelOrder = other.AccessLevelOrder ?? AccessLevelOrder,
             MemberTypeOrder = other.MemberTypeOrder ?? MemberTypeOrder,
             TopLevelTypeOrder = other.TopLevelTypeOrder ?? TopLevelTypeOrder,
-            StaticMembersFirst = other.StaticMembersFirst,
-            ConstMembersFirst = other.ConstMembersFirst,
+            StaticMembersFirst =
+                other.StaticMembersFirst != defaultOptions.StaticMembersFirst
+                    ? other.StaticMembersFirst
+                    : StaticMembersFirst,
+            ConstMembersFirst =
+                other.ConstMembersFirst != defaultOptions.ConstMembersFirst
+                    ? other.ConstMembersFirst
+                    : ConstMembersFirst,
+            InsertBlankLineBetweenMembers =
+                other.InsertBlankLineBetweenMembers != defaultOptions.InsertBlankLineBetweenMembers
+                    ? other.InsertBlankLineBetweenMembers
+                    : InsertBlankLineBetweenMembers,
         };
     }
 }

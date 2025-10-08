@@ -54,6 +54,31 @@ internal class InternalHelper { }
 internal record InternalDto { }
 ```
 
+### `insertBlankLineBetweenMembers` (boolean, default: `false`)
+
+When enabled, ensures that exactly one blank line exists between sorted members. This option normalizes spacing to maintain consistent formatting throughout your code.
+
+**Example:**
+```csharp
+// With insertBlankLineBetweenMembers: true
+public class User
+{
+    public const int MaxAge = 120;
+
+    public int Age { get; set; }
+
+    public string Email { get; set; }
+
+    public string Name { get; set; }
+
+    public void UpdateProfile() { }
+
+    private void ValidateEmail() { }
+}
+```
+
+**Note:** This option ensures there is never more than one blank line or less than one blank line between members when enabled. It preserves comments and attributes while normalizing the spacing.
+
 ## Configuration File Format
 
 ### Basic Example
@@ -61,7 +86,8 @@ internal record InternalDto { }
 ```json
 {
   "alphabeticalSort": false,
-  "sortTopLevelTypes": false
+  "sortTopLevelTypes": false,
+  "insertBlankLineBetweenMembers": false
 }
 ```
 
@@ -73,7 +99,10 @@ internal record InternalDto { }
   "alphabeticalSort": true,
   
   // Sort top-level types by access level
-  "sortTopLevelTypes": false
+  "sortTopLevelTypes": false,
+  
+  // Insert exactly one blank line between members
+  "insertBlankLineBetweenMembers": true
 }
 ```
 
@@ -182,9 +211,12 @@ project/
 ```json
 {
   "alphabeticalSort": true,
-  "sortTopLevelTypes": true
+  "sortTopLevelTypes": true,
+  "insertBlankLineBetweenMembers": true
 }
 ```
+
+This configuration will make DTOs very readable by alphabetically sorting properties and ensuring consistent spacing between them.
 
 ### Use Case 2: Different Rules for Test Files
 
