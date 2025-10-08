@@ -39,7 +39,11 @@
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\" />
     <!-- Include all DLLs from output directory except MSBuild assemblies -->
-    <None Include="$(OutputPath)\*.dll" Pack="true" PackagePath="build\net9.0\" 
-          Exclude="$(OutputPath)\Microsoft.Build.*.dll" />
+    <None
+      Include="$(OutputPath)\*.dll"
+      Pack="true"
+      PackagePath="build\net9.0\"
+      Exclude="$(OutputPath)\Microsoft.Build.*.dll"
+    />
   </ItemGroup>
 </Project>
