@@ -1,20 +1,18 @@
 <Project>
-  <!-- Determine which target framework to use based on the project's target framework -->
+  <!-- Determine which target framework to use based on available .NET SDK -->
   <PropertyGroup>
-    <SA1201TaskPath
-      Condition="'$(MSBuildRuntimeType)' == 'Core' AND '$(TargetFramework)' != '' AND $(TargetFramework.StartsWith('net9'))"
+    <!-- Try to detect the best matching framework based on the target framework -->
+    <SA1201TaskPath Condition="'$(SA1201TaskPath)' == '' AND '$(TargetFramework)' != ''"
+      >$(MSBuildThisFileDirectory)$(TargetFramework)\SA1201ier.MSBuild.dll</SA1201TaskPath
+    >
+    <!-- Fall back to checking if specific framework folders exist -->
+    <SA1201TaskPath Condition="'$(SA1201TaskPath)' == '' OR !Exists('$(SA1201TaskPath)')"
       >$(MSBuildThisFileDirectory)net9.0\SA1201ier.MSBuild.dll</SA1201TaskPath
     >
-    <SA1201TaskPath
-      Condition="'$(MSBuildRuntimeType)' == 'Core' AND '$(TargetFramework)' != '' AND $(TargetFramework.StartsWith('net8'))"
+    <SA1201TaskPath Condition="!Exists('$(SA1201TaskPath)')"
       >$(MSBuildThisFileDirectory)net8.0\SA1201ier.MSBuild.dll</SA1201TaskPath
     >
-    <SA1201TaskPath
-      Condition="'$(MSBuildRuntimeType)' == 'Core' AND '$(TargetFramework)' != '' AND $(TargetFramework.StartsWith('net6'))"
-      >$(MSBuildThisFileDirectory)net6.0\SA1201ier.MSBuild.dll</SA1201TaskPath
-    >
-    <!-- Default to net6.0 if no match or for older frameworks -->
-    <SA1201TaskPath Condition="'$(SA1201TaskPath)' == ''"
+    <SA1201TaskPath Condition="!Exists('$(SA1201TaskPath)')"
       >$(MSBuildThisFileDirectory)net6.0\SA1201ier.MSBuild.dll</SA1201TaskPath
     >
   </PropertyGroup>
