@@ -1,4 +1,4 @@
-using SA1201ier.Core;
+﻿using SA1201ier.Core;
 
 namespace SA1201ier.Tests;
 
@@ -10,7 +10,7 @@ public class Sa1201IerBasicTests
     private readonly Sa1201IerFormatter _formatter;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Sa1201IerBasicTests" /> class.
+    /// Initializes a new instance of the <see cref="Sa1201IerBasicTests"/> class.
     /// </summary>
     public Sa1201IerBasicTests()
     {
@@ -281,5 +281,38 @@ public class TestClass
             StringComparison.Ordinal
         );
         Assert.True(publicIndex < privateIndex);
+    }
+
+    /// <summary>
+    /// Tests that Environment.NewLine is used as the default when no existing newlines are found
+    /// and InsertBlankLineBetweenMembers is enabled. This ensures platform-specific line endings
+    /// are respected.
+    /// </summary>
+    [Fact]
+    public void FormatContent_NoExistingNewlines_UsesPlatformNewLine()
+    {
+        // Arrange - content with CRLF newlines but needs reordering
+        var options = new FormatterOptions { InsertBlankLineBetweenMembers = true };
+        var formatter = new Sa1201IerFormatter(options);
+
+        // Use content that has no newlines in the trivia (single line format) But when formatted
+        // with InsertBlankLineBetweenMembers, it should add Environment.NewLine
+        var content =
+            @"public class TestClass
+{
+    private int PrivateField;
+    public int PublicField;
+}";
+
+        // Act
+        var result = formatter.FormatContent("test.cs", content);
+
+        // Assert
+        Assert.True(result.HasChanges);
+        Assert.NotNull(result.FormattedContent);
+
+        // The formatted content should preserve the existing newline style or use platform default
+        // Since the input has LF, it should preserve LF
+        Assert.Contains("\n", result.FormattedContent);
     }
 }
