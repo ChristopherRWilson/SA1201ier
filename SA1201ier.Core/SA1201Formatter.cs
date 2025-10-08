@@ -536,13 +536,13 @@ public class Sa1201IerFormatter
                 for (var i = 0; i < sortedMembers.Count; i++)
                 {
                     var member = (MemberDeclarationSyntax)sortedMembers[i].Node;
-                    
+
                     // If insertBlankLineBetweenMembers is enabled, normalize blank lines
                     if (_options.InsertBlankLineBetweenMembers && i > 0)
                     {
                         member = EnsureSingleBlankLineBefore(member);
                     }
-                    
+
                     reorderedMembers.Add(member);
                 }
             }
@@ -737,52 +737,73 @@ public class Sa1201IerFormatter
     /// </summary>
     /// <param name="member">The member to process.</param>
     /// <returns>The member with normalized leading trivia.</returns>
-    private static MemberDeclarationSyntax EnsureSingleBlankLineBefore(MemberDeclarationSyntax member)
+    private static MemberDeclarationSyntax EnsureSingleBlankLineBefore(
+        MemberDeclarationSyntax member
+    )
     {
         var leadingTrivia = member.GetLeadingTrivia();
         var newTrivia = new List<SyntaxTrivia>();
-        
-        // Start with exactly one blank line (2 newlines)
-        newTrivia.Add(SyntaxFactory.EndOfLine(Environment.NewLine));
-        newTrivia.Add(SyntaxFactory.EndOfLine(Environment.NewLine));
-        
-        // Skip any leading newlines and whitespace, but preserve everything else
-        var skipInitialWhitespace = true;
+
+        // Find the newline style used in the original trivia (for consistency)
+        var newlineText = "\r\n"; // Default to CRLF
         foreach (var trivia in leadingTrivia)
         {
-            if (skipInitialWhitespace && 
-                (trivia.IsKind(SyntaxKind.EndOfLineTrivia) || trivia.IsKind(SyntaxKind.WhitespaceTrivia)))
+            if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
             {
-                // Skip initial whitespace/newlines - we already added our normalized blank line
+                newlineText = trivia.ToFullString();
+                break;
+            }
+        }
+
+        // Start with exactly one blank line
+        // The previous member's trailing newline + this newline = one blank line
+        newTrivia.Add(SyntaxFactory.EndOfLine(newlineText));
+
+        // Collect non-whitespace trivia (comments, attributes, directives) and the final indentation
+        var importantTrivia = new List<SyntaxTrivia>();
+        SyntaxTrivia? finalIndentation = null;
+
+        var foundImportantTrivia = false;
+        for (var i = 0; i < leadingTrivia.Count; i++)
+        {
+            var trivia = leadingTrivia[i];
+
+            if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+            {
+                // Skip newlines at the start, but once we've found important trivia, keep them
+                if (foundImportantTrivia)
+                {
+                    importantTrivia.Add(trivia);
+                }
                 continue;
             }
-            
-            // Once we hit non-whitespace, preserve everything else
-            if (!trivia.IsKind(SyntaxKind.EndOfLineTrivia) && !trivia.IsKind(SyntaxKind.WhitespaceTrivia))
+
+            if (trivia.IsKind(SyntaxKind.WhitespaceTrivia))
             {
-                skipInitialWhitespace = false;
-            }
-            
-            if (!skipInitialWhitespace)
-            {
-                newTrivia.Add(trivia);
-            }
-        }
-        
-        // If we removed all trivia (it was all whitespace), add back the final indentation
-        // by finding the last whitespace in the original leading trivia
-        if (newTrivia.Count == 2) // Only our 2 newlines
-        {
-            for (var i = leadingTrivia.Count - 1; i >= 0; i--)
-            {
-                if (leadingTrivia[i].IsKind(SyntaxKind.WhitespaceTrivia))
+                // Always track the last whitespace as potential indentation
+                finalIndentation = trivia;
+                // If we've found important trivia, preserve whitespace
+                if (foundImportantTrivia)
                 {
-                    newTrivia.Add(leadingTrivia[i]);
-                    break;
+                    importantTrivia.Add(trivia);
                 }
+                continue;
             }
+
+            // This is important trivia (comments, attributes, directives, etc.)
+            foundImportantTrivia = true;
+            importantTrivia.Add(trivia);
         }
-        
+
+        // Add any important trivia (comments, attributes, etc.)
+        newTrivia.AddRange(importantTrivia);
+
+        // Add final indentation if we have one
+        if (finalIndentation.HasValue)
+        {
+            newTrivia.Add(finalIndentation.Value);
+        }
+
         return member.WithLeadingTrivia(newTrivia);
     }
 

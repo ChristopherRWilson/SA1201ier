@@ -82,16 +82,35 @@ public class FormatterOptions
             return this;
         }
 
+        // For boolean properties, only override if the other value is different from the default
+        // This allows CLI options to selectively override config file settings
+        var defaultOptions = Default;
+
         return new FormatterOptions
         {
-            AlphabeticalSort = other.AlphabeticalSort,
-            SortTopLevelTypes = other.SortTopLevelTypes,
+            AlphabeticalSort =
+                other.AlphabeticalSort != defaultOptions.AlphabeticalSort
+                    ? other.AlphabeticalSort
+                    : AlphabeticalSort,
+            SortTopLevelTypes =
+                other.SortTopLevelTypes != defaultOptions.SortTopLevelTypes
+                    ? other.SortTopLevelTypes
+                    : SortTopLevelTypes,
             AccessLevelOrder = other.AccessLevelOrder ?? AccessLevelOrder,
             MemberTypeOrder = other.MemberTypeOrder ?? MemberTypeOrder,
             TopLevelTypeOrder = other.TopLevelTypeOrder ?? TopLevelTypeOrder,
-            StaticMembersFirst = other.StaticMembersFirst,
-            ConstMembersFirst = other.ConstMembersFirst,
-            InsertBlankLineBetweenMembers = other.InsertBlankLineBetweenMembers,
+            StaticMembersFirst =
+                other.StaticMembersFirst != defaultOptions.StaticMembersFirst
+                    ? other.StaticMembersFirst
+                    : StaticMembersFirst,
+            ConstMembersFirst =
+                other.ConstMembersFirst != defaultOptions.ConstMembersFirst
+                    ? other.ConstMembersFirst
+                    : ConstMembersFirst,
+            InsertBlankLineBetweenMembers =
+                other.InsertBlankLineBetweenMembers != defaultOptions.InsertBlankLineBetweenMembers
+                    ? other.InsertBlankLineBetweenMembers
+                    : InsertBlankLineBetweenMembers,
         };
     }
 }
