@@ -51,6 +51,13 @@ public class FormatterOptions
     public bool ConstMembersFirst { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets whether to insert a single blank line between sorted members.
+    /// When enabled, ensures exactly one blank line exists between members.
+    /// Default: false.
+    /// </summary>
+    public bool InsertBlankLineBetweenMembers { get; set; } = false;
+
+    /// <summary>
     /// Creates a new instance with default options.
     /// </summary>
     public static FormatterOptions Default =>
@@ -60,6 +67,7 @@ public class FormatterOptions
             SortTopLevelTypes = false,
             StaticMembersFirst = true,
             ConstMembersFirst = true,
+            InsertBlankLineBetweenMembers = false,
         };
 
     /// <summary>
@@ -83,6 +91,7 @@ public class FormatterOptions
             TopLevelTypeOrder = other.TopLevelTypeOrder ?? TopLevelTypeOrder,
             StaticMembersFirst = other.StaticMembersFirst,
             ConstMembersFirst = other.ConstMembersFirst,
+            InsertBlankLineBetweenMembers = other.InsertBlankLineBetweenMembers,
         };
     }
 }

@@ -133,6 +133,7 @@ public class ConfigurationLoader
             sortTopLevelTypes = false,
             staticMembersFirst = true,
             constMembersFirst = true,
+            insertBlankLineBetweenMembers = false,
             accessLevelOrder = new[]
             {
                 "Public",

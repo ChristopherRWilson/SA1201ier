@@ -24,6 +24,11 @@
   // Default: true
   "constMembersFirst": true,
 
+  // Insert a single blank line between sorted members
+  // When enabled, ensures exactly one blank line exists between members
+  // Default: false
+  "insertBlankLineBetweenMembers": false,
+
   // Custom order for access levels
   // Valid values: "Public", "Internal", "ProtectedInternal", "Protected", "PrivateProtected", "Private"
   // Default order (if not specified):

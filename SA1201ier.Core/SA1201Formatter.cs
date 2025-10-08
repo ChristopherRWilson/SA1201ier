@@ -536,17 +536,40 @@ public class Sa1201IerFormatter
                 for (var i = 0; i < sortedMembers.Count; i++)
                 {
                     var member = (MemberDeclarationSyntax)sortedMembers[i].Node;
+                    
+                    // If insertBlankLineBetweenMembers is enabled, normalize blank lines
+                    if (_options.InsertBlankLineBetweenMembers && i > 0)
+                    {
+                        member = EnsureSingleBlankLineBefore(member);
+                    }
+                    
                     reorderedMembers.Add(member);
                 }
             }
             else
             {
-                // No reordering needed, keep original order
-                reorderedMembers.AddRange(group.Members);
+                // No reordering needed, but still normalize blank lines if option is enabled
+                if (_options.InsertBlankLineBetweenMembers)
+                {
+                    for (var i = 0; i < group.Members.Count; i++)
+                    {
+                        var member = group.Members[i];
+                        if (i > 0)
+                        {
+                            member = EnsureSingleBlankLineBefore(member);
+                        }
+                        reorderedMembers.Add(member);
+                    }
+                }
+                else
+                {
+                    // Keep original order without modification
+                    reorderedMembers.AddRange(group.Members);
+                }
             }
         }
 
-        if (!needsReordering)
+        if (!needsReordering && !_options.InsertBlankLineBetweenMembers)
         {
             return typeDeclaration;
         }
@@ -706,6 +729,61 @@ public class Sa1201IerFormatter
         }
 
         return groups;
+    }
+
+    /// <summary>
+    /// Ensures that a member has exactly one blank line before it by normalizing its leading trivia.
+    /// Preserves comments, attributes, and other important trivia while ensuring proper spacing.
+    /// </summary>
+    /// <param name="member">The member to process.</param>
+    /// <returns>The member with normalized leading trivia.</returns>
+    private static MemberDeclarationSyntax EnsureSingleBlankLineBefore(MemberDeclarationSyntax member)
+    {
+        var leadingTrivia = member.GetLeadingTrivia();
+        var newTrivia = new List<SyntaxTrivia>();
+        
+        // Start with exactly one blank line (2 newlines)
+        newTrivia.Add(SyntaxFactory.EndOfLine(Environment.NewLine));
+        newTrivia.Add(SyntaxFactory.EndOfLine(Environment.NewLine));
+        
+        // Skip any leading newlines and whitespace, but preserve everything else
+        var skipInitialWhitespace = true;
+        foreach (var trivia in leadingTrivia)
+        {
+            if (skipInitialWhitespace && 
+                (trivia.IsKind(SyntaxKind.EndOfLineTrivia) || trivia.IsKind(SyntaxKind.WhitespaceTrivia)))
+            {
+                // Skip initial whitespace/newlines - we already added our normalized blank line
+                continue;
+            }
+            
+            // Once we hit non-whitespace, preserve everything else
+            if (!trivia.IsKind(SyntaxKind.EndOfLineTrivia) && !trivia.IsKind(SyntaxKind.WhitespaceTrivia))
+            {
+                skipInitialWhitespace = false;
+            }
+            
+            if (!skipInitialWhitespace)
+            {
+                newTrivia.Add(trivia);
+            }
+        }
+        
+        // If we removed all trivia (it was all whitespace), add back the final indentation
+        // by finding the last whitespace in the original leading trivia
+        if (newTrivia.Count == 2) // Only our 2 newlines
+        {
+            for (var i = leadingTrivia.Count - 1; i >= 0; i--)
+            {
+                if (leadingTrivia[i].IsKind(SyntaxKind.WhitespaceTrivia))
+                {
+                    newTrivia.Add(leadingTrivia[i]);
+                    break;
+                }
+            }
+        }
+        
+        return member.WithLeadingTrivia(newTrivia);
     }
 
     /// <summary>
