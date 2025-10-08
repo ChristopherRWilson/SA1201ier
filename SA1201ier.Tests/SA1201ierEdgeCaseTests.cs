@@ -510,4 +510,163 @@ public class TestClass
         Assert.Contains("using System;", result.FormattedContent);
         Assert.Contains("using System.Collections.Generic;", result.FormattedContent);
     }
+
+    /// <summary>
+    /// Tests that regions are preserved and members within regions are reordered independently.
+    /// </summary>
+    [Fact]
+    public void FormatContent_WithRegions_PreservesRegionsAndReordersWithin()
+    {
+        // Arrange
+        var content =
+            @"
+public class TestClass
+{
+#region Private Fields
+    private int privateField1;
+    private int privateField2;
+#endregion
+
+#region Public Fields
+    public int publicField1;
+    public int publicField2;
+#endregion
+
+    private void PrivateMethod() { }
+    public void PublicMethod() { }
+}";
+
+        // Act
+        var result = _formatter.FormatContent("test.cs", content);
+
+        // Assert
+        Assert.NotNull(result.FormattedContent);
+        
+        // Verify regions are preserved
+        Assert.Contains("#region Private Fields", result.FormattedContent);
+        Assert.Contains("#endregion", result.FormattedContent);
+        Assert.Contains("#region Public Fields", result.FormattedContent);
+        
+        // Verify that public method comes before private method (outside of regions)
+        var publicMethodIndex = result.FormattedContent.IndexOf("public void PublicMethod", StringComparison.Ordinal);
+        var privateMethodIndex = result.FormattedContent.IndexOf("private void PrivateMethod", StringComparison.Ordinal);
+        Assert.True(publicMethodIndex < privateMethodIndex, "Public method should come before private method");
+    }
+
+    /// <summary>
+    /// Tests that preprocessor directives are preserved.
+    /// </summary>
+    [Fact]
+    public void FormatContent_WithPreprocessorDirectives_PreservesDirectives()
+    {
+        // Arrange
+        var content =
+            @"
+public class TestClass
+{
+#if DEBUG
+    private void DebugMethod() { }
+#endif
+
+    private void PrivateMethod() { }
+    public void PublicMethod() { }
+}";
+
+        // Act
+        var result = _formatter.FormatContent("test.cs", content);
+
+        // Assert
+        Assert.NotNull(result.FormattedContent);
+        
+        // Verify preprocessor directives are preserved
+        Assert.Contains("#if DEBUG", result.FormattedContent);
+        Assert.Contains("#endif", result.FormattedContent);
+        
+        // Verify DebugMethod is still within the #if block
+        var ifIndex = result.FormattedContent.IndexOf("#if DEBUG", StringComparison.Ordinal);
+        var debugMethodIndex = result.FormattedContent.IndexOf("private void DebugMethod", StringComparison.Ordinal);
+        var endifIndex = result.FormattedContent.IndexOf("#endif", StringComparison.Ordinal);
+        Assert.True(ifIndex < debugMethodIndex, "#if should come before DebugMethod");
+        Assert.True(debugMethodIndex < endifIndex, "DebugMethod should come before #endif");
+        
+        // Verify that public method comes before private method (outside of #if block)
+        var publicMethodIndex = result.FormattedContent.IndexOf("public void PublicMethod", StringComparison.Ordinal);
+        var privateMethodIndex = result.FormattedContent.IndexOf("private void PrivateMethod", StringComparison.Ordinal);
+        Assert.True(publicMethodIndex < privateMethodIndex, "Public method should come before private method");
+    }
+
+    /// <summary>
+    /// Tests that members within regions maintain their order when already correct.
+    /// </summary>
+    [Fact]
+    public void FormatContent_WithRegionsCorrectOrder_NoChanges()
+    {
+        // Arrange
+        var content =
+            @"
+public class TestClass
+{
+#region Public Fields
+    public int publicField1;
+    public int publicField2;
+#endregion
+
+#region Private Fields
+    private int privateField1;
+    private int privateField2;
+#endregion
+}";
+
+        // Act
+        var result = _formatter.FormatContent("test.cs", content);
+
+        // Assert
+        Assert.NotNull(result.FormattedContent);
+        
+        // Verify regions are preserved in original order since region blocks are kept as-is
+        Assert.Contains("#region Public Fields", result.FormattedContent);
+        Assert.Contains("#region Private Fields", result.FormattedContent);
+    }
+
+    /// <summary>
+    /// Tests that nested preprocessor directives are handled correctly.
+    /// </summary>
+    [Fact]
+    public void FormatContent_WithNestedPreprocessorDirectives_PreservesStructure()
+    {
+        // Arrange
+        var content =
+            @"
+public class TestClass
+{
+#if DEBUG
+    #if TRACE
+        private void DebugTraceMethod() { }
+    #endif
+    private void DebugMethod() { }
+#endif
+
+    public void PublicMethod() { }
+}";
+
+        // Act
+        var result = _formatter.FormatContent("test.cs", content);
+
+        // Assert
+        Assert.NotNull(result.FormattedContent);
+        
+        // Verify all preprocessor directives are preserved
+        Assert.Contains("#if DEBUG", result.FormattedContent);
+        Assert.Contains("#if TRACE", result.FormattedContent);
+        Assert.Contains("#endif", result.FormattedContent);
+        
+        // Verify the structure is maintained
+        var lines = result.FormattedContent.Split('\n');
+        var debugIfLine = Array.FindIndex(lines, l => l.Contains("#if DEBUG"));
+        var traceIfLine = Array.FindIndex(lines, l => l.Contains("#if TRACE"));
+        var debugTraceMethodLine = Array.FindIndex(lines, l => l.Contains("DebugTraceMethod"));
+        
+        Assert.True(debugIfLine < traceIfLine, "#if DEBUG should come before #if TRACE");
+        Assert.True(traceIfLine < debugTraceMethodLine, "#if TRACE should come before DebugTraceMethod");
+    }
 }

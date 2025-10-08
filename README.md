@@ -9,6 +9,7 @@ A command-line tool and MSBuild integration for automatically formatting C# file
 - **Check mode** for CI/CD pipelines to verify formatting without modifying files
 - **Comprehensive test suite** with extensive edge case coverage
 - **Preserves comments, attributes, and formatting** while reordering members
+- **Respects preprocessor directives and regions** - members within `#if`/`#endif` or `#region`/`#endregion` blocks are kept together and reordered independently
 
 ## What is SA1201?
 
@@ -192,6 +193,56 @@ public class MyClass
     private void PrivateMethod() { }
 }
 ```
+
+### Preprocessor Directives and Regions
+
+SA1201ier respects preprocessor directives and region boundaries. Members within these blocks are treated as separate groups and reordered independently:
+
+```csharp
+// Before
+public class MyClass
+{
+#region Private Fields
+    private int field2;
+    private int field1;
+#endregion
+
+#region Public Fields
+    public int publicField2;
+    public int publicField1;
+#endregion
+
+#if DEBUG
+    private void DebugMethod() { }
+#endif
+
+    private void PrivateMethod() { }
+    public void PublicMethod() { }
+}
+
+// After
+public class MyClass
+{
+#region Private Fields
+    private int field2;
+    private int field1;
+#endregion
+
+#region Public Fields
+    public int publicField2;
+    public int publicField1;
+#endregion
+
+#if DEBUG
+    private void DebugMethod() { }
+#endif
+
+    public void PublicMethod() { }
+    private void PrivateMethod() { }
+}
+```
+
+Note: Members within regions and preprocessor blocks maintain their relative order, while members outside these blocks are reordered according to SA1201 rules.
 
 ## Future Enhancements
 
