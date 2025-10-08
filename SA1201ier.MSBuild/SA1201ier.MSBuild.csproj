@@ -74,7 +74,10 @@
     </ItemGroup>
     <!-- Include localization resource DLLs -->
     <ItemGroup>
-      <_LocalizationFiles Include="$(OutputPath)cs\**\*.dll;$(OutputPath)de\**\*.dll;$(OutputPath)es\**\*.dll;$(OutputPath)fr\**\*.dll;$(OutputPath)it\**\*.dll;$(OutputPath)ja\**\*.dll;$(OutputPath)ko\**\*.dll;$(OutputPath)pl\**\*.dll;$(OutputPath)pt-BR\**\*.dll;$(OutputPath)ru\**\*.dll;$(OutputPath)tr\**\*.dll;$(OutputPath)zh-Hans\**\*.dll;$(OutputPath)zh-Hant\**\*.dll" />
+      <_LocalizationFiles
+        Include="$(OutputPath)*\**\*.dll"
+        Exclude="$(OutputPath)$(AssemblyName).dll;$(OutputPath)Microsoft.Build.*.dll;$(OutputPath)runtimes\**\*.dll"
+      />
       <TfmSpecificPackageFile Include="@(_LocalizationFiles)">
         <PackagePath>build\$(TargetFramework)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
       </TfmSpecificPackageFile>
