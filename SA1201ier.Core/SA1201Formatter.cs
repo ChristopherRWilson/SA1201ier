@@ -515,11 +515,7 @@ public class Sa1201IerFormatter
             groups.Add(currentGroup);
         }
 
-        // If no groups were created, treat all members as one group
-        if (groups.Count == 0)
-        {
-            return new List<MemberGroup> { new MemberGroup { Members = allMembers } };
-        }
+        // groups will be empty if allMembers is empty, or contain at least one group otherwise
 
         return groups;
     }
