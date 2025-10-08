@@ -4,7 +4,9 @@
   </ItemGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <!-- Target .NET 6.0 and later for broader compatibility -->
+    <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackAsTool>true</PackAsTool>
@@ -12,7 +14,7 @@
     <PackageId>SA1201ier</PackageId>
     <Title>SA1201ier Formatter CLI Tool</Title>
     <Authors>Chris Wilson</Authors>
-    <Description>Command-line tool for SA1201 Formatter - automatically format C# files according to StyleCop rule SA1201 (elements should be ordered by access level).</Description>
+    <Description>Command-line tool for SA1201 Formatter - automatically format C# files according to StyleCop rule SA1201 (elements should be ordered by access level). Supports .NET 6.0 and later.</Description>
     <PackageTags>stylecop;sa1201;formatter;cli;tool;csharp;code-formatter;dotnet-tool</PackageTags>
     <PackageProjectUrl>https://github.com/ChristopherRWilson/SA1201ier</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ChristopherRWilson/SA1201ier</RepositoryUrl>
