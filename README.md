@@ -265,6 +265,39 @@ Configure formatting in your `.csproj` file:
 </PropertyGroup>
 ```
 
+#### Integration with CSharpier
+
+SA1201ier is designed to work seamlessly with CSharpier. When both packages are installed, SA1201ier automatically runs **before** CSharpier during the build process. This ensures:
+
+1. SA1201ier reorders members according to SA1201 rules
+2. CSharpier then applies its formatting rules to the reordered code
+
+**Recommended setup:**
+
+```xml
+<ItemGroup>
+  <!-- SA1201ier runs first to reorder members -->
+  <PackageReference Include="SA1201ier.MSBuild" Version="*" PrivateAssets="all" />
+  
+  <!-- CSharpier runs second to format the code -->
+  <PackageReference Include="CSharpier.MSBuild" Version="*" PrivateAssets="all" />
+</ItemGroup>
+
+<PropertyGroup>
+  <!-- Enable SA1201ier formatting on build -->
+  <SA1201FormatOnBuild>true</SA1201FormatOnBuild>
+  
+  <!-- Enable CSharpier formatting on build -->
+  <CSharpier_Check>false</CSharpier_Check>
+</PropertyGroup>
+```
+
+This combination gives you:
+- ✅ Consistent member ordering (SA1201ier)
+- ✅ Consistent code formatting (CSharpier)
+- ✅ Automatic application during build
+- ✅ No conflicts between tools
+
 ### CI/CD Integration
 
 #### GitHub Actions
