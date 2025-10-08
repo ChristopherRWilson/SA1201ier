@@ -58,17 +58,16 @@ public class FormatterOptions
     public bool InsertBlankLineBetweenMembers { get; set; } = false;
 
     /// <summary>
-    /// Creates a new instance with default options.
+    /// Gets a cached instance with default options.
     /// </summary>
-    public static FormatterOptions Default =>
-        new FormatterOptions
-        {
-            AlphabeticalSort = false,
-            SortTopLevelTypes = false,
-            StaticMembersFirst = true,
-            ConstMembersFirst = true,
-            InsertBlankLineBetweenMembers = false,
-        };
+    public static readonly FormatterOptions Default = new FormatterOptions
+    {
+        AlphabeticalSort = false,
+        SortTopLevelTypes = false,
+        StaticMembersFirst = true,
+        ConstMembersFirst = true,
+        InsertBlankLineBetweenMembers = false,
+    };
 
     /// <summary>
     /// Merges this options instance with another, with the other taking precedence for non-null values.

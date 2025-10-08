@@ -27,6 +27,20 @@ public class FormatterOptionsTests
     }
 
     /// <summary>
+    /// Tests that Default returns a cached instance (not a new instance each time).
+    /// </summary>
+    [Fact]
+    public void Default_ReturnsCachedInstance()
+    {
+        // Act
+        var options1 = FormatterOptions.Default;
+        var options2 = FormatterOptions.Default;
+
+        // Assert - should be the same instance
+        Assert.Same(options1, options2);
+    }
+
+    /// <summary>
     /// Tests that options can be created with custom values.
     /// </summary>
     [Fact]
