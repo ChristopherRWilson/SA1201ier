@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- Target .NET 6.0 and later for broader compatibility -->
-    <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
+    <!-- MSBuild task targets only host-supported frameworks; consumer projects can be newer -->
+    <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
