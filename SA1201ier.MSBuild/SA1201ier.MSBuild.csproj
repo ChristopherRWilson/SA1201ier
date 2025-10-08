@@ -16,6 +16,8 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <DevelopmentDependency>true</DevelopmentDependency>
     <IncludeBuildOutput>false</IncludeBuildOutput>
+    <!-- Copy all dependencies to output directory so they can be packaged -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
@@ -36,7 +38,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\" />
-    <None Include="$(OutputPath)\SA1201ier.MSBuild.dll" Pack="true" PackagePath="build\net9.0\" />
-    <None Include="$(OutputPath)\SA1201ier.Core.dll" Pack="true" PackagePath="build\net9.0\" />
+    <!-- Include all DLLs from output directory except MSBuild assemblies -->
+    <None Include="$(OutputPath)\*.dll" Pack="true" PackagePath="build\net9.0\" 
+          Exclude="$(OutputPath)\Microsoft.Build.*.dll" />
   </ItemGroup>
 </Project>

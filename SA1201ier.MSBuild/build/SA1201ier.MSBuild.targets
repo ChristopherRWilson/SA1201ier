@@ -1,6 +1,6 @@
 <Project>
   <UsingTask
-    TaskName="SA1201ier.MSBuild.FormatSA1201Task"
+    TaskName="SA1201ier.MSBuild.FormatSa1201Task"
     AssemblyFile="$(MSBuildThisFileDirectory)\net9.0\SA1201ier.MSBuild.dll"
   />
   <Target
@@ -8,7 +8,7 @@
     BeforeTargets="CSharpierFormat;CoreCompile"
     Condition="'$(SA1201FormatOnBuild)' == 'true' OR '$(SA1201CheckOnBuild)' == 'true'"
   >
-    <FormatSA1201Task
+    <FormatSa1201Task
       ProjectDirectory="$(MSBuildProjectDirectory)"
       CheckOnly="$(SA1201CheckOnBuild)"
       FailOnViolations="$(SA1201FailOnViolations)"
