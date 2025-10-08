@@ -83,7 +83,7 @@ public class FormatterOptions
         }
 
         // For boolean properties, only override if the other value is different from the default
-        // This allows CLI options to selectively override config file settings
+        // This allows option sources to selectively override other settings
         var defaultOptions = Default;
 
         return new FormatterOptions

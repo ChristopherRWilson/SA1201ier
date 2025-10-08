@@ -756,9 +756,13 @@ public class Sa1201IerFormatter
             }
         }
 
-        // Start with exactly one blank line
-        // The previous member's trailing newline + this newline = one blank line
-        newTrivia.Add(SyntaxFactory.EndOfLine(newlineText));
+        // Ensure exactly one blank line before the member.
+        // Assumption: The previous member may or may not end with a newline.
+        // To guarantee one blank line, add a newline if the leading trivia does not already start with one.
+        if (leadingTrivia.Count == 0 || !leadingTrivia[0].IsKind(SyntaxKind.EndOfLineTrivia))
+        {
+            newTrivia.Add(SyntaxFactory.EndOfLine(newlineText));
+        }
 
         // Collect non-whitespace trivia (comments, attributes, directives) and the final indentation
         var importantTrivia = new List<SyntaxTrivia>();
