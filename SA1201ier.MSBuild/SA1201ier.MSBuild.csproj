@@ -24,22 +24,74 @@
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\" />
   </ItemGroup>
-  <!-- Include CLI tool binaries in the package -->
   <ItemGroup>
-    <Content Include="..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\**\*.*" Exclude="..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\**\*.pdb" LinkBase="tools\sa1201ier\net6.0" CopyToOutputDirectory="Never">
-      <Pack>true</Pack>
-      <PackagePath>tools/sa1201ier/net6.0/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="..\SA1201ier.Cli\bin\$(Configuration)\net8.0\publish\**\*.*" Exclude="..\SA1201ier.Cli\bin\$(Configuration)\net8.0\publish\**\*.pdb" LinkBase="tools\sa1201ier\net8.0" CopyToOutputDirectory="Never">
-      <Pack>true</Pack>
-      <PackagePath>tools/sa1201ier/net8.0/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\**\*.*" Exclude="..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\**\*.pdb" LinkBase="tools\sa1201ier\net9.0" CopyToOutputDirectory="Never">
-      <Pack>true</Pack>
-      <PackagePath>tools/sa1201ier/net9.0/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
-      <Visible>false</Visible>
-    </Content>
+    <PackageReference Include="CSharpier.MsBuild" Version="1.1.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
+  
+  <!-- Hook into the packing process -->
+  <PropertyGroup>
+    <BeforePack>$(BeforePack);PublishAndIncludeCliTools</BeforePack>
+  </PropertyGroup>
+  
+  <!-- Automatically publish CLI tools and include them in the package -->
+  <!-- Only run during Pack operations, not during regular builds or design-time -->
+  <Target Name="PublishAndIncludeCliTools" Condition="'$(IsPacking)' == 'true'">
+    <Message Text="Publishing CLI tools for net6.0, net8.0, net9.0..." Importance="high" />
+    <Message Text="Configuration: $(Configuration)" Importance="high" />
+    
+    <!-- Publish all three target frameworks - first one does restore -->
+    <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)..\SA1201ier.Cli\SA1201ier.csproj&quot; -c $(Configuration) -f net6.0" ContinueOnError="false" />
+    <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)..\SA1201ier.Cli\SA1201ier.csproj&quot; -c $(Configuration) -f net8.0 --no-restore" ContinueOnError="false" />
+    <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)..\SA1201ier.Cli\SA1201ier.csproj&quot; -c $(Configuration) -f net9.0 --no-restore" ContinueOnError="false" />
+    
+    <Message Text="CLI tools published successfully" Importance="high" />
+    
+    <!-- Add the published files to None items for packing -->
+    <!-- Use specific paths without RecursiveDir to avoid subdirectory issues -->
+    <!-- Condition prevents design-time evaluation in Visual Studio -->
+    <ItemGroup Condition="'$(DesignTimeBuild)' != 'true' AND '$(BuildingProject)' == 'true'">
+      <_Net6PublishFiles Include="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\*.*" Exclude="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\*.pdb" />
+      <_Net6PublishFolders Include="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\**\*.*" Exclude="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\*.pdb;$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\*.*" />
+      
+      <_Net8PublishFiles Include="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net8.0\publish\*.*" Exclude="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net8.0\publish\*.pdb" />
+      <_Net8PublishFolders Include="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net8.0\publish\**\*.*" Exclude="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net8.0\publish\*.pdb;$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net8.0\publish\*.*" />
+      
+      <_Net9PublishFiles Include="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\*.*" Exclude="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\*.pdb" />
+      <_Net9PublishFolders Include="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\**\*.*" Exclude="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\*.pdb;$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\*.*" />
+    </ItemGroup>
+    
+    <ItemGroup Condition="'$(DesignTimeBuild)' != 'true' AND '$(BuildingProject)' == 'true'">
+      <None Include="@(_Net6PublishFiles)">
+        <Pack>true</Pack>
+        <PackagePath>tools/sa1201ier/net6.0</PackagePath>
+      </None>
+      <None Include="@(_Net6PublishFolders)">
+        <Pack>true</Pack>
+        <PackagePath>tools/sa1201ier/net6.0/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      </None>
+      
+      <None Include="@(_Net8PublishFiles)">
+        <Pack>true</Pack>
+        <PackagePath>tools/sa1201ier/net8.0</PackagePath>
+      </None>
+      <None Include="@(_Net8PublishFolders)">
+        <Pack>true</Pack>
+        <PackagePath>tools/sa1201ier/net8.0/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      </None>
+      
+      <None Include="@(_Net9PublishFiles)">
+        <Pack>true</Pack>
+        <PackagePath>tools/sa1201ier/net9.0</PackagePath>
+      </None>
+      <None Include="@(_Net9PublishFolders)">
+        <Pack>true</Pack>
+        <PackagePath>tools/sa1201ier/net9.0/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      </None>
+    </ItemGroup>
+  </Target>
+  
+  <!-- Remove the old approach -->
 </Project>
