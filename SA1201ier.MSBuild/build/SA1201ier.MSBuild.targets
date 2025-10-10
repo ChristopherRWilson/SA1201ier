@@ -1,28 +1,39 @@
 <Project>
-  <!-- Determine which target framework to use based on MSBuild runtime -->
+  <!-- Determine which .NET framework version to use for the CLI tool -->
   <PropertyGroup>
-    <!-- Default to net6.0 -->
-    <SA1201TaskTfm>net6.0</SA1201TaskTfm>
-    <!-- Use net8.0 if MSBuildRuntimeType is Core and NETCoreSdkVersion is 8.x -->
-    <SA1201TaskTfm
-      Condition="'$(MSBuildRuntimeType)' == 'Core' AND $([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '8.0')) AND $([MSBuild]::VersionLessThan('$(NETCoreSdkVersion)', '9.0'))"
-    >net8.0</SA1201TaskTfm>
-    <!-- Use net9.0 if MSBuildRuntimeType is Core and NETCoreSdkVersion is 9.x or higher -->
-    <SA1201TaskTfm
-      Condition="'$(MSBuildRuntimeType)' == 'Core' AND $([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '9.0'))"
-    >net9.0</SA1201TaskTfm>
-    <SA1201TaskPath>$(MSBuildThisFileDirectory)$(SA1201TaskTfm)\SA1201ier.MSBuild.dll</SA1201TaskPath>
+    <SA1201_FrameworkVersion Condition="'$(SA1201_FrameworkVersion)' == '' and $([MSBuild]::VersionGreaterThanOrEquals($(NETCoreSdkVersion), '9.0'))">net9.0</SA1201_FrameworkVersion>
+    <SA1201_FrameworkVersion Condition="'$(SA1201_FrameworkVersion)' == '' and $([MSBuild]::VersionGreaterThanOrEquals($(NETCoreSdkVersion), '8.0'))">net8.0</SA1201_FrameworkVersion>
+    <SA1201_FrameworkVersion Condition="'$(SA1201_FrameworkVersion)' == ''" Label="Fallback">net6.0</SA1201_FrameworkVersion>
+    <SA1201DllPath>$(MSBuildThisFileDirectory)../tools/sa1201ier/$(SA1201_FrameworkVersion)/SA1201ier.dll</SA1201DllPath>
+    <SA1201_dotnet_Path Condition="'$(SA1201_dotnet_Path)' == ''">$(DOTNET_HOST_PATH)</SA1201_dotnet_Path>
+    <SA1201_dotnet_Path Condition="'$(SA1201_dotnet_Path)' == ''">dotnet</SA1201_dotnet_Path>
+    <SA1201Command>format</SA1201Command>
+    <SA1201Command Condition="'$(SA1201CheckOnBuild)' == 'true'">check</SA1201Command>
+    <FirstTargetFramework Condition=" '$(TargetFrameworks)' == '' ">$(TargetFramework)</FirstTargetFramework>
+    <FirstTargetFramework Condition=" '$(FirstTargetFrameworks)' == '' ">$(TargetFrameworks.Split(';')[0])</FirstTargetFramework>
+    <NullOutput>NUL</NullOutput>
   </PropertyGroup>
-  <UsingTask TaskName="SA1201ier.MSBuild.FormatSa1201Task" AssemblyFile="$(SA1201TaskPath)" />
-  <Target
-    Name="FormatSA1201"
-    BeforeTargets="CSharpierFormat;CoreCompile"
-    Condition="'$(SA1201FormatOnBuild)' == 'true' OR '$(SA1201CheckOnBuild)' == 'true'"
-  >
-    <FormatSa1201Task
-      ProjectDirectory="$(MSBuildProjectDirectory)"
-      CheckOnly="$(SA1201CheckOnBuild)"
-      FailOnViolations="$(SA1201FailOnViolations)"
+
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
+    <NullOutput>/dev/null</NullOutput>
+  </PropertyGroup>
+
+  <Target Name="FormatSA1201Inner" Condition="'$(SA1201FormatOnBuild)' == 'true' OR '$(SA1201CheckOnBuild)' == 'true'">
+    <Exec
+      ConsoleToMSBuild="true"
+      StdOutEncoding="utf-8"
+      StdErrEncoding="utf-8"
+      IgnoreExitCode="true"
+      Command="&quot;$(SA1201_dotnet_Path)&quot; exec &quot;$(SA1201DllPath)&quot; $(SA1201Command) &quot;$(MSBuildProjectDirectory)&quot; &gt; $(NullOutput) "
     />
+  </Target>
+
+  <!-- Run a single time for projects that target multiple frameworks -->
+  <Target Name="FormatSA1201" BeforeTargets="DispatchToInnerBuilds;BeforeBuild;CoreCompile">
+    <MSBuild Projects="$(MSBuildProjectFile)" Targets="FormatSA1201Inner" Properties="TargetFramework=$(FirstTargetFramework);SA1201_FrameworkVersion=$(SA1201_FrameworkVersion)" />
+  </Target>
+
+  <Target Name="SA1201LogBypass" BeforeTargets="FormatSA1201Inner" Condition="'$(SA1201FormatOnBuild)' != 'true' AND '$(SA1201CheckOnBuild)' != 'true'">
+    <Message Text="SA1201ier bypassed because SA1201FormatOnBuild and SA1201CheckOnBuild are not set to 'true'" Importance="low" />
   </Target>
 </Project>

@@ -1,8 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <PackageId>SA1201ier.MSBuild</PackageId>
@@ -17,75 +16,30 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <DevelopmentDependency>true</DevelopmentDependency>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SA1201ier.Core\SA1201ier.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="CSharpier.MsBuild" Version="1.1.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference
-      Include="Microsoft.Build.Utilities.Core"
-      Version="[17.4.0,18.0.0)"
-      PrivateAssets="all"
-    />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\" />
   </ItemGroup>
-  <!-- This property tells NuGet to call our custom target during pack -->
-  <PropertyGroup>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackTaskDependencies</TargetsForTfmSpecificContentInPackage>
-  </PropertyGroup>
-  <!-- Package files for each target framework - this runs once per TFM during inner builds -->
-  <Target Name="PackTaskDependencies">
-    <ItemGroup>
-      <!-- Include all DLLs except MSBuild assemblies -->
-      <TfmSpecificPackageFile
-        Include="$(OutputPath)*.dll"
-        Exclude="$(OutputPath)Microsoft.Build.*.dll"
-      >
-        <PackagePath>build\$(TargetFramework)\</PackagePath>
-      </TfmSpecificPackageFile>
-      <!-- Include deps.json -->
-      <TfmSpecificPackageFile
-        Include="$(OutputPath)$(AssemblyName).deps.json"
-        Condition="Exists('$(OutputPath)$(AssemblyName).deps.json')"
-      >
-        <PackagePath>build\$(TargetFramework)\</PackagePath>
-      </TfmSpecificPackageFile>
-      <!-- Include runtimeconfig.json -->
-      <TfmSpecificPackageFile
-        Include="$(OutputPath)$(AssemblyName).runtimeconfig.json"
-        Condition="Exists('$(OutputPath)$(AssemblyName).runtimeconfig.json')"
-      >
-        <PackagePath>build\$(TargetFramework)\</PackagePath>
-      </TfmSpecificPackageFile>
-    </ItemGroup>
-    <!-- Include localization resource DLLs -->
-    <ItemGroup>
-      <_LocalizationFiles
-        Include="$(OutputPath)*\**\*.dll"
-        Exclude="$(OutputPath)$(AssemblyName).dll;$(OutputPath)Microsoft.Build.*.dll;$(OutputPath)runtimes\**\*.dll"
-      />
-      <TfmSpecificPackageFile Include="@(_LocalizationFiles)">
-        <PackagePath>build\$(TargetFramework)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
-      </TfmSpecificPackageFile>
-    </ItemGroup>
-    <!-- Include runtime-specific native assemblies -->
-    <ItemGroup>
-      <_RuntimeFiles Include="$(OutputPath)runtimes\**\*.dll" />
-      <TfmSpecificPackageFile Include="@(_RuntimeFiles)">
-        <PackagePath>build\$(TargetFramework)\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
-      </TfmSpecificPackageFile>
-    </ItemGroup>
-  </Target>
+  <!-- Include CLI tool binaries in the package -->
+  <ItemGroup>
+    <Content Include="..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\**\*.*" Exclude="..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\**\*.pdb" LinkBase="tools\sa1201ier\net6.0" CopyToOutputDirectory="Never">
+      <Pack>true</Pack>
+      <PackagePath>tools/sa1201ier/net6.0/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="..\SA1201ier.Cli\bin\$(Configuration)\net8.0\publish\**\*.*" Exclude="..\SA1201ier.Cli\bin\$(Configuration)\net8.0\publish\**\*.pdb" LinkBase="tools\sa1201ier\net8.0" CopyToOutputDirectory="Never">
+      <Pack>true</Pack>
+      <PackagePath>tools/sa1201ier/net8.0/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\**\*.*" Exclude="..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\**\*.pdb" LinkBase="tools\sa1201ier\net9.0" CopyToOutputDirectory="Never">
+      <Pack>true</Pack>
+      <PackagePath>tools/sa1201ier/net9.0/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
 </Project>
