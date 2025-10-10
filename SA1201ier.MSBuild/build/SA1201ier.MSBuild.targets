@@ -7,8 +7,8 @@
     <SA1201DllPath>$(MSBuildThisFileDirectory)../tools/sa1201ier/$(SA1201_FrameworkVersion)/SA1201ier.dll</SA1201DllPath>
     <SA1201_dotnet_Path Condition="'$(SA1201_dotnet_Path)' == ''">$(DOTNET_HOST_PATH)</SA1201_dotnet_Path>
     <SA1201_dotnet_Path Condition="'$(SA1201_dotnet_Path)' == ''">dotnet</SA1201_dotnet_Path>
-    <SA1201Command>format</SA1201Command>
-    <SA1201Command Condition="'$(SA1201CheckOnBuild)' == 'true'">check</SA1201Command>
+    <SA1201Args></SA1201Args>
+    <SA1201Args Condition="'$(SA1201CheckOnBuild)' == 'true'">--check</SA1201Args>
     <SA1201VerboseOutput Condition="'$(SA1201VerboseOutput)' == ''">false</SA1201VerboseOutput>
     <FirstTargetFramework Condition=" '$(TargetFrameworks)' == '' ">$(TargetFramework)</FirstTargetFramework>
     <FirstTargetFramework Condition=" '$(FirstTargetFramework)' == '' ">$(TargetFrameworks.Split(';')[0])</FirstTargetFramework>
@@ -27,7 +27,7 @@
       StdErrEncoding="utf-8"
       IgnoreExitCode="true"
       Condition="'$(SA1201VerboseOutput)' != 'true'"
-      Command="&quot;$(SA1201_dotnet_Path)&quot; exec &quot;$(SA1201DllPath)&quot; $(SA1201Command) &quot;$(MSBuildProjectDirectory)&quot; &gt; $(NullOutput)"
+      Command="&quot;$(SA1201_dotnet_Path)&quot; exec &quot;$(SA1201DllPath)&quot; &quot;$(MSBuildProjectDirectory)&quot; $(SA1201Args) &gt; $(NullOutput)"
     />
     <!-- With verbose output enabled, show all formatter output -->
     <Exec
@@ -36,7 +36,7 @@
       StdErrEncoding="utf-8"
       IgnoreExitCode="true"
       Condition="'$(SA1201VerboseOutput)' == 'true'"
-      Command="&quot;$(SA1201_dotnet_Path)&quot; exec &quot;$(SA1201DllPath)&quot; $(SA1201Command) &quot;$(MSBuildProjectDirectory)&quot;"
+      Command="&quot;$(SA1201_dotnet_Path)&quot; exec &quot;$(SA1201DllPath)&quot; &quot;$(MSBuildProjectDirectory)&quot; $(SA1201Args)"
     />
   </Target>
 
