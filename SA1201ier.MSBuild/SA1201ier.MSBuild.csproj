@@ -37,8 +37,8 @@
   </PropertyGroup>
   
   <!-- Automatically publish CLI tools and include them in the package -->
-  <!-- Only run during Pack operations, not during regular builds or design-time -->
-  <Target Name="PublishAndIncludeCliTools" Condition="'$(IsPacking)' == 'true'">
+  <!-- Runs via BeforePack, so only during pack operations -->
+  <Target Name="PublishAndIncludeCliTools">
     <Message Text="Publishing CLI tools for net6.0, net8.0, net9.0..." Importance="high" />
     <Message Text="Configuration: $(Configuration)" Importance="high" />
     
@@ -51,8 +51,7 @@
     
     <!-- Add the published files to None items for packing -->
     <!-- Use specific paths without RecursiveDir to avoid subdirectory issues -->
-    <!-- Condition prevents design-time evaluation in Visual Studio -->
-    <ItemGroup Condition="'$(DesignTimeBuild)' != 'true' AND '$(BuildingProject)' == 'true'">
+    <ItemGroup>
       <_Net6PublishFiles Include="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\*.*" Exclude="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\*.pdb" />
       <_Net6PublishFolders Include="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\**\*.*" Exclude="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\*.pdb;$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net6.0\publish\*.*" />
       
@@ -63,7 +62,7 @@
       <_Net9PublishFolders Include="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\**\*.*" Exclude="$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\*.pdb;$(MSBuildThisFileDirectory)..\SA1201ier.Cli\bin\$(Configuration)\net9.0\publish\*.*" />
     </ItemGroup>
     
-    <ItemGroup Condition="'$(DesignTimeBuild)' != 'true' AND '$(BuildingProject)' == 'true'">
+    <ItemGroup>
       <None Include="@(_Net6PublishFiles)">
         <Pack>true</Pack>
         <PackagePath>tools/sa1201ier/net6.0</PackagePath>
