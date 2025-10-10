@@ -37,8 +37,8 @@
   </PropertyGroup>
   
   <!-- Automatically publish CLI tools and include them in the package -->
-  <!-- Only run during Pack, not during design-time builds in Visual Studio -->
-  <Target Name="PublishAndIncludeCliTools" Condition="'$(IsPacking)' == 'true' OR '$(NoBuild)' != 'true'">
+  <!-- Only run during Pack operations, not during regular builds or design-time -->
+  <Target Name="PublishAndIncludeCliTools" Condition="'$(IsPacking)' == 'true'">
     <Message Text="Publishing CLI tools for net6.0, net8.0, net9.0..." Importance="high" />
     <Message Text="Configuration: $(Configuration)" Importance="high" />
     
