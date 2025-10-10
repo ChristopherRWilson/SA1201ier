@@ -1,0 +1,3 @@
+# Exclude MSBuild targets and props files - these are XML, not C#
+*.targets
+*.props
