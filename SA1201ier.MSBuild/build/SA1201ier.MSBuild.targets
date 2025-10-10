@@ -1,7 +1,13 @@
 <Project>
-  <!-- Determine which target framework to use based on available .NET SDK -->
+  <!-- Determine which target framework to use based on MSBuild runtime -->
   <PropertyGroup>
-    <SA1201TaskPath>$(MSBuildThisFileDirectory)net6.0\SA1201ier.MSBuild.dll</SA1201TaskPath>
+    <!-- Default to net6.0 -->
+    <SA1201TaskTfm>net6.0</SA1201TaskTfm>
+    <!-- Use net8.0 if MSBuildRuntimeType is Core and NETCoreSdkVersion is 8.x -->
+    <SA1201TaskTfm Condition="'$(MSBuildRuntimeType)' == 'Core' AND $([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '8.0')) AND $([MSBuild]::VersionLessThan('$(NETCoreSdkVersion)', '9.0'))">net8.0</SA1201TaskTfm>
+    <!-- Use net9.0 if MSBuildRuntimeType is Core and NETCoreSdkVersion is 9.x or higher -->
+    <SA1201TaskTfm Condition="'$(MSBuildRuntimeType)' == 'Core' AND $([MSBuild]::VersionGreaterThanOrEquals('$(NETCoreSdkVersion)', '9.0'))">net9.0</SA1201TaskTfm>
+    <SA1201TaskPath>$(MSBuildThisFileDirectory)$(SA1201TaskTfm)\SA1201ier.MSBuild.dll</SA1201TaskPath>
   </PropertyGroup>
   <UsingTask TaskName="SA1201ier.MSBuild.FormatSa1201Task" AssemblyFile="$(SA1201TaskPath)" />
   <Target
