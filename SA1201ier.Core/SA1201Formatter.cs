@@ -757,56 +757,84 @@ public class Sa1201IerFormatter
         }
 
         // Ensure exactly one blank line before the member.
-        // Assumption: The previous member may or may not end with a newline.
-        // To guarantee one blank line, add a newline if the leading trivia does not already start with one.
-        if (leadingTrivia.Count == 0 || !leadingTrivia[0].IsKind(SyntaxKind.EndOfLineTrivia))
+        // Add a blank line at the start
+        newTrivia.Add(SyntaxFactory.EndOfLine(newlineText));
+
+        // Process the leading trivia to preserve important trivia (comments, attributes, directives)
+        // while normalizing whitespace and ensuring proper indentation
+
+        // Scan through trivia and collect important trivia with proper formatting
+        var i = 0;
+
+        // Skip leading whitespace and newlines
+        while (
+            i < leadingTrivia.Count
+            && (
+                leadingTrivia[i].IsKind(SyntaxKind.WhitespaceTrivia)
+                || leadingTrivia[i].IsKind(SyntaxKind.EndOfLineTrivia)
+            )
+        )
         {
-            newTrivia.Add(SyntaxFactory.EndOfLine(newlineText));
+            i++;
         }
 
-        // Collect non-whitespace trivia (comments, attributes, directives) and the final indentation
-        var importantTrivia = new List<SyntaxTrivia>();
-        SyntaxTrivia? finalIndentation = null;
+        // Now collect all remaining trivia, which includes:
+        // - Important trivia (comments, attributes, directives)
+        // - Whitespace and newlines that are part of the formatting of that trivia
+        // - The final indentation before the member declaration
+        //
+        // Special case: If the first important trivia is a documentation comment or attribute,
+        // we need to include the whitespace immediately before it (which we just skipped)
+        if (i > 0 && i < leadingTrivia.Count)
+        {
+            var firstImportant = leadingTrivia[i];
+            // Check if this is structured trivia (documentation comments, attributes, directives)
+            if (
+                firstImportant.HasStructure
+                || firstImportant.IsKind(SyntaxKind.SingleLineCommentTrivia)
+                || firstImportant.IsKind(SyntaxKind.MultiLineCommentTrivia)
+            )
+            {
+                // Look back for the whitespace before this important trivia
+                if (i > 0 && leadingTrivia[i - 1].IsKind(SyntaxKind.WhitespaceTrivia))
+                {
+                    newTrivia.Add(leadingTrivia[i - 1]);
+                }
+            }
+        }
 
-        var foundImportantTrivia = false;
-        for (var i = 0; i < leadingTrivia.Count; i++)
+        while (i < leadingTrivia.Count)
         {
             var trivia = leadingTrivia[i];
 
-            if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
-            {
-                // Skip newlines at the start, but once we've found important trivia, keep them
-                if (foundImportantTrivia)
-                {
-                    importantTrivia.Add(trivia);
-                }
-                continue;
-            }
-
+            // Check if this is the last whitespace (which would be the member's indentation)
             if (trivia.IsKind(SyntaxKind.WhitespaceTrivia))
             {
-                // Always track the last whitespace as potential indentation
-                finalIndentation = trivia;
-                // If we've found important trivia, preserve whitespace
-                if (foundImportantTrivia)
+                // Look ahead to see if there's only more whitespace/newlines after this
+                var isLastWhitespace = true;
+                for (var j = i + 1; j < leadingTrivia.Count; j++)
                 {
-                    importantTrivia.Add(trivia);
+                    if (
+                        !leadingTrivia[j].IsKind(SyntaxKind.WhitespaceTrivia)
+                        && !leadingTrivia[j].IsKind(SyntaxKind.EndOfLineTrivia)
+                    )
+                    {
+                        isLastWhitespace = false;
+                        break;
+                    }
                 }
-                continue;
+
+                if (isLastWhitespace)
+                {
+                    // This is the final indentation - add it and we're done
+                    newTrivia.Add(trivia);
+                    break;
+                }
             }
 
-            // This is important trivia (comments, attributes, directives, etc.)
-            foundImportantTrivia = true;
-            importantTrivia.Add(trivia);
-        }
-
-        // Add any important trivia (comments, attributes, etc.)
-        newTrivia.AddRange(importantTrivia);
-
-        // Add final indentation if we have one
-        if (finalIndentation.HasValue)
-        {
-            newTrivia.Add(finalIndentation.Value);
+            // Add this trivia
+            newTrivia.Add(trivia);
+            i++;
         }
 
         return member.WithLeadingTrivia(newTrivia);
